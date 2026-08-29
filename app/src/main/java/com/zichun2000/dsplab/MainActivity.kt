@@ -3,16 +3,14 @@ package com.zichun2000.dsplab
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.weight
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -29,23 +27,48 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import com.zichun2000.dsplab.dsp.SignalParameters
 import com.zichun2000.dsplab.dsp.SignalType
 import com.zichun2000.dsplab.dsp.generateDiscreteSignal
+import com.zichun2000.dsplab.lab.SamplingLabScreen
 import kotlin.math.PI
-import kotlin.math.cos
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme {
-                Surface(Modifier.fillMaxSize()) { SignalLabScreen() }
+                Surface(Modifier.fillMaxSize()) { DspLabApp() }
             }
+        }
+    }
+}
+
+private enum class Lab(val title: String) {
+    SIGNAL("01 · Discrete Signals"),
+    SAMPLING("02 · Sampling & Aliasing")
+}
+
+@Composable
+private fun DspLabApp() {
+    var selectedLab by rememberSaveable { mutableIntStateOf(0) }
+    Column(Modifier.fillMaxSize()) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Lab.entries.forEachIndexed { index, lab ->
+                FilterChip(
+                    selected = selectedLab == index,
+                    onClick = { selectedLab = index },
+                    label = { Text(lab.title) }
+                )
+            }
+        }
+        when (Lab.entries[selectedLab]) {
+            Lab.SIGNAL -> SignalLabScreen()
+            Lab.SAMPLING -> SamplingLabScreen()
         }
     }
 }
@@ -134,33 +157,4 @@ private fun ParameterSlider(
 ) {
     Text("$label: ${format.format(value)}")
     Slider(value = value, onValueChange = onValueChange, valueRange = range)
-}
-
-@Composable
-private fun SignalPlot(values: List<Double>, modifier: Modifier = Modifier) {
-    Canvas(modifier.padding(vertical = 8.dp)) {
-        if (values.isEmpty()) return@Canvas
-        val left = 42f
-        val right = size.width - 16f
-        val top = 20f
-        val bottom = size.height - 30f
-        val centerY = (top + bottom) / 2f
-        val scaleY = (bottom - top) / 2.5f
-        val width = right - left
-
-        drawLine(Offset(left, centerY), Offset(right, centerY), strokeWidth = 2f)
-        drawLine(Offset(left, top), Offset(left, bottom), strokeWidth = 2f)
-
-        val path = Path()
-        values.forEachIndexed { i, value ->
-            val x = if (values.size == 1) left else left + width * i / (values.size - 1)
-            val y = centerY - value.toFloat() * scaleY
-            if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
-            // Stem plot: each sample is connected to the zero axis.
-            drawLine(Offset(x, centerY), Offset(x, y), strokeWidth = 2f)
-            drawCircle(Offset(x, y), radius = 5f)
-        }
-        // A light connecting curve helps students see the overall waveform trend.
-        drawPath(path, style = Stroke(width = 2f))
-    }
 }
