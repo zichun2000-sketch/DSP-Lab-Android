@@ -13,12 +13,16 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.weight
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -29,105 +33,134 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
+import com.zichun2000.dsplab.dsp.SignalParameters
+import com.zichun2000.dsplab.dsp.SignalType
+import com.zichun2000.dsplab.dsp.generateDiscreteSignal
 import kotlin.math.PI
-import kotlin.math.sin
+import kotlin.math.cos
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme {
-                Surface(modifier = Modifier.fillMaxSize()) {
-                    SignalLabScreen()
-                }
+                Surface(Modifier.fillMaxSize()) { SignalLabScreen() }
             }
         }
     }
 }
 
-private enum class SignalType(val title: String) {
-    SINE("Sine"), IMPULSE("Unit Impulse"), STEP("Unit Step")
-}
-
-private fun generateSignal(type: SignalType, n: Int, frequency: Float, phase: Float): Float {
-    return when (type) {
-        SignalType.SINE -> sin(2.0 * PI * frequency * n / 32.0 + phase).toFloat()
-        SignalType.IMPULSE -> if (n == 0) 1f else 0f
-        SignalType.STEP -> if (n >= 0) 1f else 0f
-    }
-}
-
-@androidx.compose.runtime.Composable
+@Composable
 private fun SignalLabScreen() {
-    var signalTypeIndex by rememberSaveable { mutableIntStateOf(0) }
+    var typeIndex by rememberSaveable { mutableIntStateOf(0) }
+    var amplitude by rememberSaveable { mutableFloatStateOf(1f) }
     var frequency by rememberSaveable { mutableFloatStateOf(2f) }
-    var phase by rememberSaveable { mutableFloatStateOf(0f) }
-    var samples by rememberSaveable { mutableIntStateOf(32) }
-    val signalType = SignalType.entries[signalTypeIndex]
-    val values = (0 until samples).map { generateSignal(signalType, it, frequency, phase) }
+    var phaseDegrees by rememberSaveable { mutableFloatStateOf(0f) }
+    var decay by rememberSaveable { mutableFloatStateOf(0.06f) }
+    var sampleCount by rememberSaveable { mutableIntStateOf(32) }
+    val type = SignalType.entries[typeIndex]
+    val phase = phaseDegrees * PI.toFloat() / 180f
+    val values = generateDiscreteSignal(
+        type,
+        sampleCount,
+        SignalParameters(amplitude.toDouble(), frequency.toDouble(), phase.toDouble(), decay.toDouble())
+    )
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(20.dp),
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Text("DSP Lab", style = MaterialTheme.typography.headlineMedium)
-        Text("Lab 01 · Discrete-Time Signal Visualization", style = MaterialTheme.typography.titleMedium)
-        Text("Explore how signal parameters change the discrete-time waveform.")
+        Text("Lab 01 · Discrete-Time Signals", style = MaterialTheme.typography.titleLarge)
+        Text("Explore how amplitude, frequency, phase, and sampling density affect a discrete-time signal.")
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SignalType.entries.forEachIndexed { index, type ->
-                if (index == signalTypeIndex) {
-                    Button(onClick = { signalTypeIndex = index }) { Text(type.title) }
-                } else {
-                    OutlinedButton(onClick = { signalTypeIndex = index }) { Text(type.title) }
-                }
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            SignalType.entries.forEachIndexed { index, signalType ->
+                FilterChip(
+                    selected = index == typeIndex,
+                    onClick = { typeIndex = index },
+                    label = { Text(signalType.displayName) }
+                )
             }
         }
 
-        Text("Frequency: ${"%.1f".format(frequency)} cycles / 32 samples")
-        Slider(value = frequency, onValueChange = { frequency = it }, valueRange = 0.5f..12f)
+        ParameterSlider("Amplitude", amplitude, 0.1f..2f, "%.2f") { amplitude = it }
+        if (type == SignalType.SINE) {
+            ParameterSlider("Frequency (cycles/window)", frequency, 0.25f..12f, "%.2f") { frequency = it }
+            ParameterSlider("Phase", phaseDegrees, 0f..360f, "%.0f°") { phaseDegrees = it }
+        }
+        if (type == SignalType.EXPONENTIAL) {
+            ParameterSlider("Decay", decay, 0.01f..0.20f, "%.2f") { decay = it }
+        }
+        Text("Samples: $sampleCount")
+        Slider(
+            value = sampleCount.toFloat(),
+            onValueChange = { sampleCount = it.toInt().coerceIn(16, 64) },
+            valueRange = 16f..64f,
+            steps = 11
+        )
 
-        Text("Phase: ${"%.0f".format(phase * 180 / PI)}°")
-        Slider(value = phase, onValueChange = { phase = it }, valueRange = 0f..(2f * PI.toFloat()))
+        Text("Time-domain representation", style = MaterialTheme.typography.titleMedium)
+        SignalPlot(values, Modifier.fillMaxWidth().height(300.dp))
 
-        Text("Samples: $samples")
-        Slider(value = samples.toFloat(), onValueChange = { samples = it.toInt() }, valueRange = 16f..64f, steps = 2)
-
-        Text("Time-domain waveform", style = MaterialTheme.typography.titleMedium)
-        SignalPlot(values = values, modifier = Modifier.fillMaxWidth().weight(1f))
-
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text("x[0] = ${"%.3f".format(values.first())}")
             Text("x[${values.lastIndex}] = ${"%.3f".format(values.last())}")
         }
-        Spacer(Modifier.height(4.dp))
-        Text("Learning focus: amplitude, frequency, phase, and discrete-time representation.")
+
+        Text("Experiment guide", style = MaterialTheme.typography.titleMedium)
+        Text("1. Select a signal type.\n2. Change one parameter at a time.\n3. Observe the discrete samples and describe the change in the waveform.")
+        Text("Reflection: How does increasing frequency change the number of oscillations observed in the same sample window?")
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = {
+                amplitude = 1f; frequency = 2f; phaseDegrees = 0f; decay = 0.06f; sampleCount = 32
+            }) { Text("Reset") }
+            OutlinedButton(onClick = { typeIndex = (typeIndex + 1) % SignalType.entries.size }) {
+                Text("Next signal")
+            }
+        }
+        Spacer(Modifier.height(8.dp))
     }
 }
 
-@androidx.compose.runtime.Composable
-private fun SignalPlot(values: List<Float>, modifier: Modifier = Modifier) {
-    Canvas(modifier = modifier.padding(vertical = 8.dp)) {
+@Composable
+private fun ParameterSlider(
+    label: String,
+    value: Float,
+    range: ClosedFloatingPointRange<Float>,
+    format: String,
+    onValueChange: (Float) -> Unit
+) {
+    Text("$label: ${format.format(value)}")
+    Slider(value = value, onValueChange = onValueChange, valueRange = range)
+}
+
+@Composable
+private fun SignalPlot(values: List<Double>, modifier: Modifier = Modifier) {
+    Canvas(modifier.padding(vertical = 8.dp)) {
         if (values.isEmpty()) return@Canvas
-        val left = 36f
-        val right = size.width - 12f
-        val top = 16f
-        val bottom = size.height - 20f
-        val centerY = top + (bottom - top) / 2f
-        val scaleY = (bottom - top) / 2.4f
-        val usableWidth = right - left
+        val left = 42f
+        val right = size.width - 16f
+        val top = 20f
+        val bottom = size.height - 30f
+        val centerY = (top + bottom) / 2f
+        val scaleY = (bottom - top) / 2.5f
+        val width = right - left
 
         drawLine(Offset(left, centerY), Offset(right, centerY), strokeWidth = 2f)
         drawLine(Offset(left, top), Offset(left, bottom), strokeWidth = 2f)
 
         val path = Path()
         values.forEachIndexed { i, value ->
-            val x = if (values.size == 1) left else left + usableWidth * i / (values.size - 1)
-            val y = centerY - value * scaleY
+            val x = if (values.size == 1) left else left + width * i / (values.size - 1)
+            val y = centerY - value.toFloat() * scaleY
             if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+            // Stem plot: each sample is connected to the zero axis.
             drawLine(Offset(x, centerY), Offset(x, y), strokeWidth = 2f)
-            drawCircle(Offset(x, y), radius = 4f)
+            drawCircle(Offset(x, y), radius = 5f)
         }
-        drawPath(path, style = Stroke(width = 3f))
+        // A light connecting curve helps students see the overall waveform trend.
+        drawPath(path, style = Stroke(width = 2f))
     }
 }
