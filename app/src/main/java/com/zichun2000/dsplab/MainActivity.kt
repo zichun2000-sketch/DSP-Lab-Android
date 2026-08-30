@@ -27,7 +27,7 @@ class MainActivity : ComponentActivity() {
 }
 
 private enum class Lab(val title: String) {
-    SIGNAL("01 · Signals"), SAMPLING("02 · Sampling"), CONVOLUTION("03 · Convolution"), DFT("04 · DFT")
+    SIGNAL("01 · Signals"), SAMPLING("02 · Sampling"), CONVOLUTION("03 · Convolution"), DFT("04 · DFT"), FILTER("05 · FIR Filter")
 }
 
 @Composable
@@ -42,6 +42,7 @@ private fun DspLabApp() {
             Lab.SAMPLING -> SamplingLabScreen()
             Lab.CONVOLUTION -> ConvolutionLabScreen()
             Lab.DFT -> DftLabScreen()
+            Lab.FILTER -> FilterLabScreen()
         }
     }
 }
@@ -94,3 +95,44 @@ private fun ParameterSlider(label: String, value: Float, range: ClosedFloatingPo
     Text("$label: ${format.format(value)}")
     Slider(value, onValueChange, valueRange = range)
 }
+
+@Composable
+private fun FilterLabScreen() {
+    var cutoff by rememberSaveable { mutableFloatStateOf(0.18f) }
+    val sampleRate = 8000.0
+    val input = mixedSignal(sampleRate, 96)
+    val coefficients = designLowPassFir(9, cutoff.toDouble())
+    val output = firFilter(input, coefficients)
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text("Lab 05 · FIR Low-Pass Filter", style = MaterialTheme.typography.titleLarge)
+        Text("Remove the high-frequency component of a mixed discrete-time signal using a short FIR filter.")
+        Text("Sampling rate: ${sampleRate.toInt()} Hz")
+        Text("Normalized cutoff: ${"%.2f".format(cutoff)} · cutoff = ${"%.0f".format(cutoff * sampleRate / 2.0)} Hz")
+        Slider(cutoff, { cutoff = it }, valueRange = 0.05f..0.45f)
+        Text("Input: 500 Hz + 2200 Hz")
+        SignalPlot(input, Modifier.fillMaxWidth().height(180.dp))
+        Text("Filtered output", style = MaterialTheme.typography.titleMedium)
+        SignalPlot(output, Modifier.fillMaxWidth().height(180.dp))
+        Text("FIR coefficients", style = MaterialTheme.typography.titleMedium)
+        Text(coefficients.joinToString(prefix = "[", postfix = "]") { "%.3f".format(it) })
+        Text("Expected observation: when the cutoff is below the normalized 2200 Hz component, the output is dominated by the 500 Hz component.")
+        Text("Reflection: What is the trade-off between cutoff frequency, filter length, and transition sharpness?")
+        Button(onClick = { cutoff = 0.18f }) { Text("Reset") }
+    }
+}
+
+private fun designLowPassFir(taps: Int, cutoff: Double): List<Double> {
+    val m = taps - 1
+    val raw = (0 until taps).map { n ->
+        val k = n - m / 2.0
+        val ideal = if (k == 0.0) 2.0 * cutoff else kotlin.math.sin(2.0 * PI * cutoff * k) / (PI * k)
+        val window = 0.54 - 0.46 * kotlin.math.cos(2.0 * PI * n / m)
+        ideal * window
+    }
+    val sum = raw.sum()
+    return raw.map { it / sum }
+}
+
+private fun firFilter(input: List<Double>, coefficients: List<Double>): List<Double> = input.indices.map { n -> coefficients.indices.sumOf { k -> if (n - k >= 0) input[n - k] * coefficients[k] else 0.0 } }
+
+private fun mixedSignal(sampleRate: Double, count: Int): List<Double> = (0 until count).map { n -> val t = n / sampleRate; kotlin.math.sin(2.0 * PI * 500.0 * t) + 0.6 * kotlin.math.sin(2.0 * PI * 2200.0 * t) }
