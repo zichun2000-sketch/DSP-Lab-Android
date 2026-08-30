@@ -20,6 +20,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.zichun2000.dsplab.dsp.dft
 import com.zichun2000.dsplab.dsp.sineSamples
@@ -33,37 +34,22 @@ fun DftLabScreen() {
     val spectrum = dft(samples, sampleRate.toDouble())
     val peak = spectrum.maxByOrNull { it.magnitude }
     val resolution = sampleRate / n
-
-    Column(
-        Modifier.padding(20.dp).verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
+    Column(Modifier.padding(20.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("Lab 04 · DFT / Frequency Spectrum", style = MaterialTheme.typography.titleLarge)
         Text("Transform a sampled sine wave from the time domain into its discrete frequency spectrum.")
-
         Text("Signal frequency: ${"%.0f".format(frequency)} Hz")
         Slider(frequency, { frequency = it }, valueRange = 250f..3500f)
         Text("Sampling frequency: ${"%.0f".format(sampleRate)} Hz")
         Slider(sampleRate, { sampleRate = it }, valueRange = 4000f..16000f)
-
         Text("Time-domain samples", style = MaterialTheme.typography.titleMedium)
-        SpectrumPlot(samples.map { it }, selected = -1, Modifier.fillMaxWidth().height(180.dp))
-
+        SpectrumPlot(samples, -1, Modifier.fillMaxWidth().height(180.dp))
         Text("Magnitude spectrum", style = MaterialTheme.typography.titleMedium)
-        SpectrumPlot(spectrum.map { it.magnitude }, selected = spectrum.indexOf(peak), Modifier.fillMaxWidth().height(250.dp))
-
+        SpectrumPlot(spectrum.map { it.magnitude }, spectrum.indexOf(peak), Modifier.fillMaxWidth().height(250.dp))
         Text("Frequency resolution: ${"%.1f".format(resolution)} Hz/bin")
         Text("Detected peak: ${"%.1f".format(peak?.frequency ?: 0.0)} Hz")
-        Text(
-            if (peak != null && kotlin.math.abs(peak.frequency - frequency) <= resolution)
-                "✓ Peak is consistent with the input frequency within one DFT bin."
-            else "⚠ The peak is shifted because the input frequency does not fall exactly on a DFT bin."
-        )
-
+        Text(if (peak != null && kotlin.math.abs(peak.frequency - frequency) <= resolution) "✓ Peak is consistent with the input frequency within one DFT bin." else "⚠ The peak is shifted because the input frequency does not fall exactly on a DFT bin.")
         Text("Reflection: Why does changing N or the sampling rate change frequency resolution?")
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = { frequency = 1000f; sampleRate = 8000f }) { Text("Reset") }
-        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { Button(onClick = { frequency = 1000f; sampleRate = 8000f }) { Text("Reset") } }
     }
 }
 
@@ -76,12 +62,12 @@ private fun SpectrumPlot(values: List<Double>, selected: Int, modifier: Modifier
         val bottom = size.height - 15f
         val maxValue = (values.maxOrNull() ?: 1.0).coerceAtLeast(1e-9).toFloat()
         val step = (right - left) / values.size
-        drawLine(Offset(left, bottom), Offset(right, bottom), strokeWidth = 2f)
+        drawLine(Color.Black, Offset(left, bottom), Offset(right, bottom), strokeWidth = 2f)
         values.forEachIndexed { index, value ->
             val x = left + step * (index + 0.5f)
             val y = bottom - (value.toFloat() / maxValue) * (size.height - 35f)
-            drawLine(Offset(x, bottom), Offset(x, y), strokeWidth = if (index == selected) 5f else 2f)
-            if (index == selected) drawCircle(Offset(x, y), 7f)
+            drawLine(Color.Black, Offset(x, bottom), Offset(x, y), strokeWidth = if (index == selected) 5f else 2f)
+            if (index == selected) drawCircle(Color.Black, 7f, Offset(x, y))
         }
     }
 }
