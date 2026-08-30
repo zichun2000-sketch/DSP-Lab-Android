@@ -23,7 +23,7 @@ class MainActivity : ComponentActivity() {
 }
 
 private enum class Page(val title: String) {
-    HOME("Home"), SIGNAL("01 · Signals"), SAMPLING("02 · Sampling"), CONVOLUTION("03 · Convolution"), DFT("04 · DFT"), FILTER("05 · FIR Filter"), STUDY("Study")
+    HOME("Home"), SIGNAL("01 · Signals"), SAMPLING("02 · Sampling"), CONVOLUTION("03 · Convolution"), DFT("04 · DFT"), FILTER("05 · FIR Filter"), STUDY("Study"), DASHBOARD("Research")
 }
 
 @Composable
@@ -34,27 +34,31 @@ private fun DspLabApp() {
             Page.entries.forEach { item -> FilterChip(selected = page == item, onClick = { page = item }, label = { Text(item.title) }) }
         }
         when (page) {
-            Page.HOME -> HomeScreen(onStudy = { page = Page.STUDY })
+            Page.HOME -> HomeScreen(onStudy = { page = Page.STUDY }, onDashboard = { page = Page.DASHBOARD })
             Page.SIGNAL -> SignalLabScreen()
             Page.SAMPLING -> SamplingLabScreen()
             Page.CONVOLUTION -> ConvolutionLabScreen()
             Page.DFT -> DftLabScreen()
             Page.FILTER -> FilterLabScreen()
             Page.STUDY -> StudyScreen()
+            Page.DASHBOARD -> ResearchDashboard()
         }
     }
 }
 
 @Composable
-private fun HomeScreen(onStudy: () -> Unit) {
+private fun HomeScreen(onStudy: () -> Unit, onDashboard: () -> Unit) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("DSP Learning Platform", style = MaterialTheme.typography.headlineMedium)
         Text("Android-based interactive experiments for Digital Signal Processing.")
         Text("Course pathway", style = MaterialTheme.typography.titleLarge)
         listOf("01  Discrete-Time Signals", "02  Sampling & Aliasing", "03  Discrete Convolution", "04  DFT & Frequency Spectrum", "05  FIR Low-Pass Filter").forEach { Text("• $it") }
         Text("Research mode", style = MaterialTheme.typography.titleLarge)
-        Text("Use the Study page to run a simple pre-test / learning activity / post-test sequence for educational research.")
-        Button(onClick = onStudy) { Text("Open Study & Assessment") }
+        Text("Run a simple pre-test / learning activity / post-test sequence and inspect the local research summary.")
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = onStudy) { Text("Study & Assessment") }
+            OutlinedButton(onClick = onDashboard) { Text("Research Dashboard") }
+        }
     }
 }
 
