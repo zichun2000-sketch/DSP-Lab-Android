@@ -3,12 +3,40 @@ package com.zichun2000.dsplab
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.Science
+import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.Button
+import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.zichun2000.dsplab.dsp.*
@@ -22,42 +50,112 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private enum class Page(val title: String) {
-    HOME("Home"), SIGNAL("01 · Signals"), SAMPLING("02 · Sampling"), CONVOLUTION("03 · Convolution"), DFT("04 · DFT"), FILTER("05 · FIR Filter"), STUDY("Study"), DASHBOARD("Research")
+private enum class Section { HOME, LABS, STUDY, RESEARCH }
+private enum class Lab(val number: String, val title: String, val description: String) {
+    SIGNAL("01", "Discrete-Time Signals", "Generate and visualize basic discrete signals."),
+    SAMPLING("02", "Sampling & Aliasing", "Explore sampling rate and aliasing."),
+    CONVOLUTION("03", "Discrete Convolution", "Understand convolution through interactive examples."),
+    DFT("04", "DFT & Frequency Spectrum", "Observe the transition from time to frequency domain."),
+    FILTER("05", "FIR Low-Pass Filter", "Explore FIR filtering and frequency response.")
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DspLabApp() {
-    var page by rememberSaveable { mutableStateOf(Page.HOME) }
-    Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(10.dp), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-            Page.entries.forEach { item -> FilterChip(selected = page == item, onClick = { page = item }, label = { Text(item.title) }) }
+    var section by rememberSaveable { mutableStateOf(Section.HOME) }
+    var selectedLab by rememberSaveable { mutableStateOf<Lab?>(null) }
+
+    val showLab = selectedLab != null
+    Scaffold(
+        topBar = {
+            if (showLab) {
+                TopAppBar(
+                    title = { Text("Lab ${selectedLab!!.number} · ${selectedLab!!.title}") },
+                    navigationIcon = { IconButton(onClick = { selectedLab = null }) { Icon(Icons.Default.ArrowBack, "Back") } }
+                )
+            } else {
+                TopAppBar(title = { Text("DSP Learning Platform") })
+            }
+        },
+        bottomBar = {
+            if (!showLab) {
+                NavigationBar(Modifier.navigationBarsPadding()) {
+                    NavigationBarItem(section == Section.HOME, { section = Section.HOME }, icon = { Icon(Icons.Default.Home, null) }, label = { Text("Home") })
+                    NavigationBarItem(section == Section.LABS, { section = Section.LABS }, icon = { Icon(Icons.Default.Science, null) }, label = { Text("Labs") })
+                    NavigationBarItem(section == Section.STUDY, { section = Section.STUDY }, icon = { Icon(Icons.Default.MenuBook, null) }, label = { Text("Study") })
+                    NavigationBarItem(section == Section.RESEARCH, { section = Section.RESEARCH }, icon = { Icon(Icons.Default.Assessment, null) }, label = { Text("Research") })
+                }
+            }
         }
-        when (page) {
-            Page.HOME -> HomeScreen(onStudy = { page = Page.STUDY }, onDashboard = { page = Page.DASHBOARD })
-            Page.SIGNAL -> SignalLabScreen()
-            Page.SAMPLING -> SamplingLabScreen()
-            Page.CONVOLUTION -> ConvolutionLabScreen()
-            Page.DFT -> DftLabScreen()
-            Page.FILTER -> FilterLabScreen()
-            Page.STUDY -> StudyScreen()
-            Page.DASHBOARD -> ResearchDashboard()
+    ) { innerPadding ->
+        Column(Modifier.fillMaxSize().padding(innerPadding)) {
+            if (selectedLab != null) {
+                when (selectedLab!!) {
+                    Lab.SIGNAL -> SignalLabScreen()
+                    Lab.SAMPLING -> SamplingLabScreen()
+                    Lab.CONVOLUTION -> ConvolutionLabScreen()
+                    Lab.DFT -> DftLabScreen()
+                    Lab.FILTER -> FilterLabScreen()
+                }
+            } else {
+                when (section) {
+                    Section.HOME -> HomeScreen(
+                        onLabs = { section = Section.LABS },
+                        onStudy = { section = Section.STUDY }
+                    )
+                    Section.LABS -> LabsScreen { selectedLab = it }
+                    Section.STUDY -> StudyScreen()
+                    Section.RESEARCH -> ResearchDashboard()
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun HomeScreen(onStudy: () -> Unit, onDashboard: () -> Unit) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("DSP Learning Platform", style = MaterialTheme.typography.headlineMedium)
-        Text("Android-based interactive experiments for Digital Signal Processing.")
-        Text("Course pathway", style = MaterialTheme.typography.titleLarge)
-        listOf("01  Discrete-Time Signals", "02  Sampling & Aliasing", "03  Discrete Convolution", "04  DFT & Frequency Spectrum", "05  FIR Low-Pass Filter").forEach { Text("• $it") }
-        Text("Research mode", style = MaterialTheme.typography.titleLarge)
-        Text("Run a simple pre-test / learning activity / post-test sequence and inspect the local research summary.")
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = onStudy) { Text("Study & Assessment") }
-            OutlinedButton(onClick = onDashboard) { Text("Research Dashboard") }
+private fun HomeScreen(onLabs: () -> Unit, onStudy: () -> Unit) {
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text("Digital Signal Processing", style = MaterialTheme.typography.headlineMedium)
+        Text("Interactive Android experiments for learning DSP concepts through visualization and parameter manipulation.", style = MaterialTheme.typography.bodyLarge)
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("5 interactive laboratories", style = MaterialTheme.typography.titleLarge)
+                Text("Signals → Sampling → Convolution → DFT → FIR Filter")
+                Button(onClick = onLabs, Modifier.fillMaxWidth()) { Text("Explore Labs") }
+            }
+        }
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Learning Study", style = MaterialTheme.typography.titleLarge)
+                Text("Complete a pre-test, learning activities, and post-test to estimate learning gain.")
+                OutlinedButton(onClick = onStudy, Modifier.fillMaxWidth()) { Text("Start Study") }
+            }
+        }
+        Text("Designed as a lightweight teaching-research prototype.", style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
+@Composable
+private fun LabsScreen(onSelect: (Lab) -> Unit) {
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text("DSP Laboratories", style = MaterialTheme.typography.headlineSmall)
+        Text("Choose an experiment. Each lab is optimized for portrait-phone use.")
+        Lab.entries.forEach { lab ->
+            Card(Modifier.fillMaxWidth(), onClick = { onSelect(lab) }) {
+                Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Text(lab.number, style = MaterialTheme.typography.titleLarge)
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(lab.title, style = MaterialTheme.typography.titleMedium)
+                        Text(lab.description, style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            }
         }
     }
 }
@@ -73,10 +171,9 @@ private fun SignalLabScreen() {
     val type = SignalType.entries[typeIndex]
     val phase = phaseDegrees * PI.toFloat() / 180f
     val values = generateDiscreteSignal(type, sampleCount, SignalParameters(amplitude.toDouble(), frequency.toDouble(), phase.toDouble(), decay.toDouble()))
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("Lab 01 · Discrete-Time Signals", style = MaterialTheme.typography.titleLarge)
-        Text("Explore amplitude, frequency, phase, and sampling density.")
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { SignalType.entries.forEachIndexed { index, signalType -> FilterChip(index == typeIndex, { typeIndex = index }, label = { Text(signalType.displayName) }) } }
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text("Adjust parameters and observe the discrete waveform.")
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { SignalType.entries.forEachIndexed { index, signalType -> androidx.compose.material3.FilterChip(index == typeIndex, { typeIndex = index }, label = { Text(signalType.displayName) }) } }
         ParameterSlider("Amplitude", amplitude, 0.1f..2f, "%.2f") { amplitude = it }
         if (type == SignalType.SINE) {
             ParameterSlider("Frequency", frequency, 0.25f..12f, "%.2f") { frequency = it }
@@ -84,11 +181,15 @@ private fun SignalLabScreen() {
         }
         if (type == SignalType.EXPONENTIAL) ParameterSlider("Decay", decay, 0.01f..0.20f, "%.2f") { decay = it }
         Text("Samples: $sampleCount")
-        Slider(sampleCount.toFloat(), { sampleCount = it.toInt().coerceIn(16, 64) }, valueRange = 16f..64f, steps = 11)
-        SignalPlot(values, Modifier.fillMaxWidth().height(300.dp))
-        Text("Reflection: How does increasing frequency change the number of oscillations in the same sample window?")
+        androidx.compose.material3.Slider(sampleCount.toFloat(), { sampleCount = it.toInt().coerceIn(16, 64) }, valueRange = 16f..64f, steps = 11)
+        SignalPlot(values, Modifier.fillMaxWidth().padding(top = 4.dp).height(260.dp))
+        Text("Reflection", style = MaterialTheme.typography.titleMedium)
+        Text("How does increasing frequency change the number of oscillations in the same sample window?")
     }
 }
 
 @Composable
-private fun ParameterSlider(label: String, value: Float, range: ClosedFloatingPointRange<Float>, format: String, onValueChange: (Float) -> Unit) { Text("$label: ${format.format(value)}"); Slider(value, onValueChange, valueRange = range) }
+private fun ParameterSlider(label: String, value: Float, range: ClosedFloatingPointRange<Float>, format: String, onValueChange: (Float) -> Unit) {
+    Text("$label: ${format.format(value)}")
+    androidx.compose.material3.Slider(value, onValueChange, valueRange = range)
+}
