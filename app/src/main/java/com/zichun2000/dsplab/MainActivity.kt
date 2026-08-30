@@ -11,12 +11,8 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.zichun2000.dsplab.dsp.SignalParameters
-import com.zichun2000.dsplab.dsp.SignalType
-import com.zichun2000.dsplab.dsp.generateDiscreteSignal
-import com.zichun2000.dsplab.lab.ConvolutionLabScreen
-import com.zichun2000.dsplab.lab.DftLabScreen
-import com.zichun2000.dsplab.lab.SamplingLabScreen
+import com.zichun2000.dsplab.dsp.*
+import com.zichun2000.dsplab.lab.*
 import kotlin.math.PI
 
 class MainActivity : ComponentActivity() {
@@ -26,24 +22,39 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private enum class Lab(val title: String) {
-    SIGNAL("01 · Signals"), SAMPLING("02 · Sampling"), CONVOLUTION("03 · Convolution"), DFT("04 · DFT"), FILTER("05 · FIR Filter")
+private enum class Page(val title: String) {
+    HOME("Home"), SIGNAL("01 · Signals"), SAMPLING("02 · Sampling"), CONVOLUTION("03 · Convolution"), DFT("04 · DFT"), FILTER("05 · FIR Filter"), STUDY("Study")
 }
 
 @Composable
 private fun DspLabApp() {
-    var selectedLab by rememberSaveable { mutableIntStateOf(0) }
+    var page by rememberSaveable { mutableStateOf(Page.HOME) }
     Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Lab.entries.forEachIndexed { index, lab -> FilterChip(selected = selectedLab == index, onClick = { selectedLab = index }, label = { Text(lab.title) }) }
+        Row(Modifier.fillMaxWidth().padding(10.dp), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            Page.entries.forEach { item -> FilterChip(selected = page == item, onClick = { page = item }, label = { Text(item.title) }) }
         }
-        when (Lab.entries[selectedLab]) {
-            Lab.SIGNAL -> SignalLabScreen()
-            Lab.SAMPLING -> SamplingLabScreen()
-            Lab.CONVOLUTION -> ConvolutionLabScreen()
-            Lab.DFT -> DftLabScreen()
-            Lab.FILTER -> FilterLabScreen()
+        when (page) {
+            Page.HOME -> HomeScreen(onStudy = { page = Page.STUDY })
+            Page.SIGNAL -> SignalLabScreen()
+            Page.SAMPLING -> SamplingLabScreen()
+            Page.CONVOLUTION -> ConvolutionLabScreen()
+            Page.DFT -> DftLabScreen()
+            Page.FILTER -> FilterLabScreen()
+            Page.STUDY -> StudyScreen()
         }
+    }
+}
+
+@Composable
+private fun HomeScreen(onStudy: () -> Unit) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text("DSP Learning Platform", style = MaterialTheme.typography.headlineMedium)
+        Text("Android-based interactive experiments for Digital Signal Processing.")
+        Text("Course pathway", style = MaterialTheme.typography.titleLarge)
+        listOf("01  Discrete-Time Signals", "02  Sampling & Aliasing", "03  Discrete Convolution", "04  DFT & Frequency Spectrum", "05  FIR Low-Pass Filter").forEach { Text("• $it") }
+        Text("Research mode", style = MaterialTheme.typography.titleLarge)
+        Text("Use the Study page to run a simple pre-test / learning activity / post-test sequence for educational research.")
+        Button(onClick = onStudy) { Text("Open Study & Assessment") }
     }
 }
 
@@ -59,80 +70,21 @@ private fun SignalLabScreen() {
     val phase = phaseDegrees * PI.toFloat() / 180f
     val values = generateDiscreteSignal(type, sampleCount, SignalParameters(amplitude.toDouble(), frequency.toDouble(), phase.toDouble(), decay.toDouble()))
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("DSP Lab", style = MaterialTheme.typography.headlineMedium)
         Text("Lab 01 · Discrete-Time Signals", style = MaterialTheme.typography.titleLarge)
-        Text("Explore how amplitude, frequency, phase, and sampling density affect a discrete-time signal.")
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            SignalType.entries.forEachIndexed { index, signalType -> FilterChip(index == typeIndex, { typeIndex = index }, label = { Text(signalType.displayName) }) }
-        }
+        Text("Explore amplitude, frequency, phase, and sampling density.")
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { SignalType.entries.forEachIndexed { index, signalType -> FilterChip(index == typeIndex, { typeIndex = index }, label = { Text(signalType.displayName) }) } }
         ParameterSlider("Amplitude", amplitude, 0.1f..2f, "%.2f") { amplitude = it }
         if (type == SignalType.SINE) {
-            ParameterSlider("Frequency (cycles/window)", frequency, 0.25f..12f, "%.2f") { frequency = it }
+            ParameterSlider("Frequency", frequency, 0.25f..12f, "%.2f") { frequency = it }
             ParameterSlider("Phase", phaseDegrees, 0f..360f, "%.0f°") { phaseDegrees = it }
         }
         if (type == SignalType.EXPONENTIAL) ParameterSlider("Decay", decay, 0.01f..0.20f, "%.2f") { decay = it }
         Text("Samples: $sampleCount")
         Slider(sampleCount.toFloat(), { sampleCount = it.toInt().coerceIn(16, 64) }, valueRange = 16f..64f, steps = 11)
-        Text("Time-domain representation", style = MaterialTheme.typography.titleMedium)
         SignalPlot(values, Modifier.fillMaxWidth().height(300.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("x[0] = ${"%.3f".format(values.first())}")
-            Text("x[${values.lastIndex}] = ${"%.3f".format(values.last())}")
-        }
-        Text("Experiment guide", style = MaterialTheme.typography.titleMedium)
-        Text("1. Select a signal type.\n2. Change one parameter at a time.\n3. Observe the discrete samples and describe the change in the waveform.")
-        Text("Reflection: How does increasing frequency change the number of oscillations observed in the same sample window?")
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = { amplitude = 1f; frequency = 2f; phaseDegrees = 0f; decay = 0.06f; sampleCount = 32 }) { Text("Reset") }
-            OutlinedButton(onClick = { typeIndex = (typeIndex + 1) % SignalType.entries.size }) { Text("Next signal") }
-        }
-        Spacer(Modifier.height(8.dp))
+        Text("Reflection: How does increasing frequency change the number of oscillations in the same sample window?")
     }
 }
 
 @Composable
-private fun ParameterSlider(label: String, value: Float, range: ClosedFloatingPointRange<Float>, format: String, onValueChange: (Float) -> Unit) {
-    Text("$label: ${format.format(value)}")
-    Slider(value, onValueChange, valueRange = range)
-}
-
-@Composable
-private fun FilterLabScreen() {
-    var cutoff by rememberSaveable { mutableFloatStateOf(0.18f) }
-    val sampleRate = 8000.0
-    val input = mixedSignal(sampleRate, 96)
-    val coefficients = designLowPassFir(9, cutoff.toDouble())
-    val output = firFilter(input, coefficients)
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("Lab 05 · FIR Low-Pass Filter", style = MaterialTheme.typography.titleLarge)
-        Text("Remove the high-frequency component of a mixed discrete-time signal using a short FIR filter.")
-        Text("Sampling rate: ${sampleRate.toInt()} Hz")
-        Text("Normalized cutoff: ${"%.2f".format(cutoff)} · cutoff = ${"%.0f".format(cutoff * sampleRate / 2.0)} Hz")
-        Slider(cutoff, { cutoff = it }, valueRange = 0.05f..0.45f)
-        Text("Input: 500 Hz + 2200 Hz")
-        SignalPlot(input, Modifier.fillMaxWidth().height(180.dp))
-        Text("Filtered output", style = MaterialTheme.typography.titleMedium)
-        SignalPlot(output, Modifier.fillMaxWidth().height(180.dp))
-        Text("FIR coefficients", style = MaterialTheme.typography.titleMedium)
-        Text(coefficients.joinToString(prefix = "[", postfix = "]") { "%.3f".format(it) })
-        Text("Expected observation: when the cutoff is below the normalized 2200 Hz component, the output is dominated by the 500 Hz component.")
-        Text("Reflection: What is the trade-off between cutoff frequency, filter length, and transition sharpness?")
-        Button(onClick = { cutoff = 0.18f }) { Text("Reset") }
-    }
-}
-
-private fun designLowPassFir(taps: Int, cutoff: Double): List<Double> {
-    val m = taps - 1
-    val raw = (0 until taps).map { n ->
-        val k = n - m / 2.0
-        val ideal = if (k == 0.0) 2.0 * cutoff else kotlin.math.sin(2.0 * PI * cutoff * k) / (PI * k)
-        val window = 0.54 - 0.46 * kotlin.math.cos(2.0 * PI * n / m)
-        ideal * window
-    }
-    val sum = raw.sum()
-    return raw.map { it / sum }
-}
-
-private fun firFilter(input: List<Double>, coefficients: List<Double>): List<Double> = input.indices.map { n -> coefficients.indices.sumOf { k -> if (n - k >= 0) input[n - k] * coefficients[k] else 0.0 } }
-
-private fun mixedSignal(sampleRate: Double, count: Int): List<Double> = (0 until count).map { n -> val t = n / sampleRate; kotlin.math.sin(2.0 * PI * 500.0 * t) + 0.6 * kotlin.math.sin(2.0 * PI * 2200.0 * t) }
+private fun ParameterSlider(label: String, value: Float, range: ClosedFloatingPointRange<Float>, format: String, onValueChange: (Float) -> Unit) { Text("$label: ${format.format(value)}"); Slider(value, onValueChange, valueRange = range) }
