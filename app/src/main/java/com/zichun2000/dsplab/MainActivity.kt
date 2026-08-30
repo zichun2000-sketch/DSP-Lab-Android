@@ -15,10 +15,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.MenuBook
-import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.School
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ElevatedCard
@@ -87,10 +87,10 @@ private fun DspLabApp() {
         },
         bottomBar = {
             if (!showLab) NavigationBar(Modifier.navigationBarsPadding()) {
-                NavigationBarItem(section == Section.HOME, { section = Section.HOME }, icon = { Icon(Icons.Default.Home, null) }, label = { Text("Home") })
-                NavigationBarItem(section == Section.LABS, { section = Section.LABS }, icon = { Icon(Icons.Default.List, null) }, label = { Text("Labs") })
-                NavigationBarItem(section == Section.STUDY, { section = Section.STUDY }, icon = { Icon(Icons.Default.MenuBook, null) }, label = { Text("Study") })
-                NavigationBarItem(section == Section.RESEARCH, { section = Section.RESEARCH }, icon = { Icon(Icons.Default.Assessment, null) }, label = { Text("Research") })
+                NavigationBarItem(selected = section == Section.HOME, onClick = { section = Section.HOME }, icon = { Icon(Icons.Default.Home, null) }, label = { Text("Home") })
+                NavigationBarItem(selected = section == Section.LABS, onClick = { section = Section.LABS }, icon = { Icon(Icons.Default.List, null) }, label = { Text("Labs") })
+                NavigationBarItem(selected = section == Section.STUDY, onClick = { section = Section.STUDY }, icon = { Icon(Icons.Default.School, null) }, label = { Text("Study") })
+                NavigationBarItem(selected = section == Section.RESEARCH, onClick = { section = Section.RESEARCH }, icon = { Icon(Icons.Default.BarChart, null) }, label = { Text("Research") })
             }
         }
     ) { innerPadding ->
@@ -119,12 +119,12 @@ private fun HomeScreen(onLabs: () -> Unit, onStudy: () -> Unit) {
         Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("5 interactive laboratories", style = MaterialTheme.typography.titleLarge)
             Text("Signals → Sampling → Convolution → DFT → FIR Filter")
-            Button(onClick = onLabs, Modifier.fillMaxWidth()) { Text("Explore Labs") }
+            Button(onClick = onLabs, modifier = Modifier.fillMaxWidth()) { Text("Explore Labs") }
         }}
         Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Learning Study", style = MaterialTheme.typography.titleLarge)
             Text("Complete a pre-test, learning activities, and post-test to estimate learning gain.")
-            OutlinedButton(onClick = onStudy, Modifier.fillMaxWidth()) { Text("Start Study") }
+            OutlinedButton(onClick = onStudy, modifier = Modifier.fillMaxWidth()) { Text("Start Study") }
         }}
         Text("Designed as a lightweight teaching-research prototype.", style = MaterialTheme.typography.bodyMedium)
     }
@@ -136,7 +136,7 @@ private fun LabsScreen(onSelect: (Lab) -> Unit) {
         Text("DSP Laboratories", style = MaterialTheme.typography.headlineSmall)
         Text("Choose an experiment. Each lab is optimized for portrait-phone use.")
         Lab.entries.forEach { lab ->
-            Card(Modifier.fillMaxWidth(), onClick = { onSelect(lab) }) { Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            Card(onClick = { onSelect(lab) }, modifier = Modifier.fillMaxWidth()) { Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 Text(lab.number, style = MaterialTheme.typography.titleLarge)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(lab.title, style = MaterialTheme.typography.titleMedium)
@@ -163,7 +163,7 @@ private fun SignalLabScreen() {
         Text("Change one parameter at a time and connect the control directly to the waveform.", style = MaterialTheme.typography.bodyMedium)
         ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text("1 · Signal type", style = MaterialTheme.typography.titleMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { SignalType.entries.forEachIndexed { index, signalType -> FilterChip(index == typeIndex, { typeIndex = index }, label = { Text(signalType.displayName) }) } }
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { SignalType.entries.forEachIndexed { index, signalType -> FilterChip(selected = index == typeIndex, onClick = { typeIndex = index }, label = { Text(signalType.displayName) }) } }
         }}
         ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("2 · Parameters", style = MaterialTheme.typography.titleMedium)
@@ -171,7 +171,7 @@ private fun SignalLabScreen() {
             if (type == SignalType.SINE) { ParameterSlider("Frequency", frequency, 0.25f..12f, "%.2f") { frequency = it }; ParameterSlider("Phase", phaseDegrees, 0f..360f, "%.0f°") { phaseDegrees = it } }
             if (type == SignalType.EXPONENTIAL) ParameterSlider("Decay", decay, 0.01f..0.20f, "%.2f") { decay = it }
             Text("Samples  $sampleCount")
-            Slider(sampleCount.toFloat(), { sampleCount = it.toInt().coerceIn(16, 64) }, valueRange = 16f..64f, steps = 11)
+            Slider(value = sampleCount.toFloat(), onValueChange = { sampleCount = it.toInt().coerceIn(16, 64) }, valueRange = 16f..64f, steps = 11)
         }}
         ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("3 · Visualization", style = MaterialTheme.typography.titleMedium)
@@ -188,5 +188,5 @@ private fun SignalLabScreen() {
 @Composable
 private fun ParameterSlider(label: String, value: Float, range: ClosedFloatingPointRange<Float>, format: String, onValueChange: (Float) -> Unit) {
     Text("$label  ${format.format(value)}")
-    Slider(value, onValueChange, valueRange = range)
+    Slider(value = value, onValueChange = onValueChange, valueRange = range)
 }
