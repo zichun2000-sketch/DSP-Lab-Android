@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
@@ -34,23 +35,49 @@ fun ConvolutionLabScreen() {
     val y = convolve(x, h)
     val step = selectedStep.coerceIn(0, y.lastIndex)
     val detail = convolutionStep(x, h, step)
-    Column(Modifier.padding(20.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("Lab 03 · Discrete Convolution", style = MaterialTheme.typography.titleLarge)
-        Text("Explore y[n] = x[n] * h[n] one output sample at a time.")
-        Text("Input x[n] = ${x.joinToString(prefix = "[", postfix = "]")}")
-        Text("System h[n] = ${h.joinToString(prefix = "[", postfix = "]")}")
-        Text("Output index n = $step")
-        Slider(value = step.toFloat(), onValueChange = { selectedStep = it.toInt().coerceIn(0, y.lastIndex) }, valueRange = 0f..y.lastIndex.toFloat(), steps = max(0, y.size - 2))
-        Text("Step calculation", style = MaterialTheme.typography.titleMedium)
-        Text("Products: ${detail.products.joinToString { "%.2f".format(it) }}")
-        Text("y[$step] = ${"%.2f".format(detail.sum)}")
-        Text("Convolution result", style = MaterialTheme.typography.titleMedium)
-        StemPlot(y, selected = step, Modifier.fillMaxWidth().height(250.dp))
-        Text("y[n] = ${y.joinToString(prefix = "[", postfix = "]") { "%.2f".format(it) }}")
-        Text("Reflection: Which samples of x[n] and h[n] contribute to y[$step]? How does the overlap change as n increases?")
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = { selectedStep = 0 }) { Text("Start") }
-            Button(onClick = { selectedStep = (step + 1).coerceAtMost(y.lastIndex) }) { Text("Next step") }
+
+    Column(
+        Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text("Discrete Convolution", style = MaterialTheme.typography.headlineSmall)
+        Text("Follow the overlap step by step and connect each product sum to one output sample.", style = MaterialTheme.typography.bodyMedium)
+
+        ElevatedCard(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("1 · Sequences", style = MaterialTheme.typography.titleMedium)
+                Text("x[n] = ${x.joinToString(prefix = "[", postfix = "]")}")
+                Text("h[n] = ${h.joinToString(prefix = "[", postfix = "]")}")
+            }
+        }
+
+        ElevatedCard(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("2 · Convolution step", style = MaterialTheme.typography.titleMedium)
+                Text("Output index n = $step")
+                Slider(value = step.toFloat(), onValueChange = { selectedStep = it.toInt().coerceIn(0, y.lastIndex) }, valueRange = 0f..y.lastIndex.toFloat(), steps = max(0, y.size - 2))
+                Text("Products: ${detail.products.joinToString { "%.2f".format(it) }}")
+                Text("y[$step] = ${"%.2f".format(detail.sum)}", style = MaterialTheme.typography.titleSmall)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = { selectedStep = 0 }) { Text("Start") }
+                    Button(onClick = { selectedStep = (step + 1).coerceAtMost(y.lastIndex) }) { Text("Next") }
+                }
+            }
+        }
+
+        ElevatedCard(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("3 · Output", style = MaterialTheme.typography.titleMedium)
+                StemPlot(y, selected = step, Modifier.fillMaxWidth().height(220.dp))
+                Text("y[n] = ${y.joinToString(prefix = "[", postfix = "]") { "%.2f".format(it) }}")
+            }
+        }
+
+        ElevatedCard(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("4 · Reflection", style = MaterialTheme.typography.titleMedium)
+                Text("Which samples of x[n] and h[n] contribute to y[$step]? How does the overlap change as n increases?")
+            }
         }
     }
 }
@@ -69,9 +96,9 @@ private fun StemPlot(values: List<Double>, selected: Int, modifier: Modifier) {
         drawLine(Color.Black, Offset(left, center), Offset(right, center), strokeWidth = 2f)
         values.forEachIndexed { i, value ->
             val x = left + width * i / (values.size - 1).coerceAtLeast(1)
-            val y = center - value.toFloat() * scale
-            drawLine(Color.Black, Offset(x, center), Offset(x, y), strokeWidth = if (i == selected) 5f else 2f)
-            drawCircle(Color.Black, if (i == selected) 7f else 5f, Offset(x, y))
+            val yPoint = center - value.toFloat() * scale
+            drawLine(Color.Black, Offset(x, center), Offset(x, yPoint), strokeWidth = if (i == selected) 5f else 2f)
+            drawCircle(Color.Black, if (i == selected) 7f else 5f, Offset(x, yPoint))
         }
     }
 }
