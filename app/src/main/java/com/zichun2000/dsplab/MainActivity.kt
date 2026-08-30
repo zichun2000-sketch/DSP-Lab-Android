@@ -8,18 +8,23 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Science
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -28,19 +33,25 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.Button
-import androidx.compose.material3.IconButton
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.zichun2000.dsplab.dsp.*
-import com.zichun2000.dsplab.lab.*
+import com.zichun2000.dsplab.dsp.SignalParameters
+import com.zichun2000.dsplab.dsp.SignalType
+import com.zichun2000.dsplab.dsp.generateDiscreteSignal
+import com.zichun2000.dsplab.lab.ConvolutionLabScreen
+import com.zichun2000.dsplab.lab.DftLabScreen
+import com.zichun2000.dsplab.lab.FilterLabScreen
+import com.zichun2000.dsplab.lab.ResearchDashboard
+import com.zichun2000.dsplab.lab.SamplingLabScreen
+import com.zichun2000.dsplab.lab.SignalPlot
+import com.zichun2000.dsplab.lab.StudyScreen
 import kotlin.math.PI
 
 class MainActivity : ComponentActivity() {
@@ -64,7 +75,6 @@ private enum class Lab(val number: String, val title: String, val description: S
 private fun DspLabApp() {
     var section by rememberSaveable { mutableStateOf(Section.HOME) }
     var selectedLab by rememberSaveable { mutableStateOf<Lab?>(null) }
-
     val showLab = selectedLab != null
     Scaffold(
         topBar = {
@@ -73,9 +83,7 @@ private fun DspLabApp() {
                     title = { Text("Lab ${selectedLab!!.number} · ${selectedLab!!.title}") },
                     navigationIcon = { IconButton(onClick = { selectedLab = null }) { Icon(Icons.Default.ArrowBack, "Back") } }
                 )
-            } else {
-                TopAppBar(title = { Text("DSP Learning Platform") })
-            }
+            } else TopAppBar(title = { Text("DSP Learning Platform") })
         },
         bottomBar = {
             if (!showLab) {
@@ -99,10 +107,7 @@ private fun DspLabApp() {
                 }
             } else {
                 when (section) {
-                    Section.HOME -> HomeScreen(
-                        onLabs = { section = Section.LABS },
-                        onStudy = { section = Section.STUDY }
-                    )
+                    Section.HOME -> HomeScreen(onLabs = { section = Section.LABS }, onStudy = { section = Section.STUDY })
                     Section.LABS -> LabsScreen { selectedLab = it }
                     Section.STUDY -> StudyScreen()
                     Section.RESEARCH -> ResearchDashboard()
@@ -114,10 +119,7 @@ private fun DspLabApp() {
 
 @Composable
 private fun HomeScreen(onLabs: () -> Unit, onStudy: () -> Unit) {
-    Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text("Digital Signal Processing", style = MaterialTheme.typography.headlineMedium)
         Text("Interactive Android experiments for learning DSP concepts through visualization and parameter manipulation.", style = MaterialTheme.typography.bodyLarge)
         Card(Modifier.fillMaxWidth()) {
@@ -140,10 +142,7 @@ private fun HomeScreen(onLabs: () -> Unit, onStudy: () -> Unit) {
 
 @Composable
 private fun LabsScreen(onSelect: (Lab) -> Unit) {
-    Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("DSP Laboratories", style = MaterialTheme.typography.headlineSmall)
         Text("Choose an experiment. Each lab is optimized for portrait-phone use.")
         Lab.entries.forEach { lab ->
@@ -171,25 +170,58 @@ private fun SignalLabScreen() {
     val type = SignalType.entries[typeIndex]
     val phase = phaseDegrees * PI.toFloat() / 180f
     val values = generateDiscreteSignal(type, sampleCount, SignalParameters(amplitude.toDouble(), frequency.toDouble(), phase.toDouble(), decay.toDouble()))
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("Adjust parameters and observe the discrete waveform.")
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { SignalType.entries.forEachIndexed { index, signalType -> androidx.compose.material3.FilterChip(index == typeIndex, { typeIndex = index }, label = { Text(signalType.displayName) }) } }
-        ParameterSlider("Amplitude", amplitude, 0.1f..2f, "%.2f") { amplitude = it }
-        if (type == SignalType.SINE) {
-            ParameterSlider("Frequency", frequency, 0.25f..12f, "%.2f") { frequency = it }
-            ParameterSlider("Phase", phaseDegrees, 0f..360f, "%.0f°") { phaseDegrees = it }
+
+    Column(
+        Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text("Discrete-Time Signals", style = MaterialTheme.typography.headlineSmall)
+        Text("Change one parameter at a time and connect the control directly to the waveform.", style = MaterialTheme.typography.bodyMedium)
+
+        ElevatedCard(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("1 · Signal type", style = MaterialTheme.typography.titleMedium)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    SignalType.entries.forEachIndexed { index, signalType ->
+                        androidx.compose.material3.FilterChip(index == typeIndex, { typeIndex = index }, label = { Text(signalType.displayName) })
+                    }
+                }
+            }
         }
-        if (type == SignalType.EXPONENTIAL) ParameterSlider("Decay", decay, 0.01f..0.20f, "%.2f") { decay = it }
-        Text("Samples: $sampleCount")
-        androidx.compose.material3.Slider(sampleCount.toFloat(), { sampleCount = it.toInt().coerceIn(16, 64) }, valueRange = 16f..64f, steps = 11)
-        SignalPlot(values, Modifier.fillMaxWidth().padding(top = 4.dp).height(260.dp))
-        Text("Reflection", style = MaterialTheme.typography.titleMedium)
-        Text("How does increasing frequency change the number of oscillations in the same sample window?")
+
+        ElevatedCard(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("2 · Parameters", style = MaterialTheme.typography.titleMedium)
+                ParameterSlider("Amplitude", amplitude, 0.1f..2f, "%.2f") { amplitude = it }
+                if (type == SignalType.SINE) {
+                    ParameterSlider("Frequency", frequency, 0.25f..12f, "%.2f") { frequency = it }
+                    ParameterSlider("Phase", phaseDegrees, 0f..360f, "%.0f°") { phaseDegrees = it }
+                }
+                if (type == SignalType.EXPONENTIAL) ParameterSlider("Decay", decay, 0.01f..0.20f, "%.2f") { decay = it }
+                Text("Samples  $sampleCount")
+                androidx.compose.material3.Slider(sampleCount.toFloat(), { sampleCount = it.toInt().coerceIn(16, 64) }, valueRange = 16f..64f, steps = 11)
+            }
+        }
+
+        ElevatedCard(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("3 · Visualization", style = MaterialTheme.typography.titleMedium)
+                SignalPlot(values, Modifier.fillMaxWidth().height(220.dp))
+                Text("Samples shown: $sampleCount")
+            }
+        }
+
+        ElevatedCard(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("4 · Reflection", style = MaterialTheme.typography.titleMedium)
+                Text("How does increasing frequency change the number of oscillations in the same sample window? What changes when amplitude or phase is adjusted?")
+            }
+        }
     }
 }
 
 @Composable
 private fun ParameterSlider(label: String, value: Float, range: ClosedFloatingPointRange<Float>, format: String, onValueChange: (Float) -> Unit) {
-    Text("$label: ${format.format(value)}")
+    Text("$label  ${format.format(value)}")
     androidx.compose.material3.Slider(value, onValueChange, valueRange = range)
 }
