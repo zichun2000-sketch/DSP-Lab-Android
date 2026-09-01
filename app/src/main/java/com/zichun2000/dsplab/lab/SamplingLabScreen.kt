@@ -38,49 +38,33 @@ fun SamplingLabScreen() {
     var sampleCount by rememberSaveable { mutableIntStateOf(32) }
     val result = sampleSineSignal(frequencyHz = signalFrequency.toDouble(), samplingFrequencyHz = samplingFrequency.toDouble(), sampleCount = sampleCount)
     val nyquistOk = satisfiesNyquist(signalFrequency.toDouble(), samplingFrequency.toDouble())
-
-    Column(
-        Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
+    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Sampling & Aliasing", style = MaterialTheme.typography.headlineSmall)
         Text("Adjust the signal and sampling rates, then connect the waveform to the Nyquist criterion.", style = MaterialTheme.typography.bodyMedium)
-
-        ElevatedCard(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("1 · Parameters", style = MaterialTheme.typography.titleMedium)
-                Text("Signal frequency  ${signalFrequency.toInt()} Hz")
-                Slider(signalFrequency, { signalFrequency = it }, valueRange = 500f..5000f)
-                Text("Sampling frequency  ${samplingFrequency.toInt()} Hz")
-                Slider(samplingFrequency, { samplingFrequency = it }, valueRange = 2000f..16000f)
-                Text("Samples  $sampleCount")
-                Slider(sampleCount.toFloat(), { sampleCount = it.toInt().coerceIn(16, 64) }, valueRange = 16f..64f, steps = 11)
-            }
-        }
-
-        ElevatedCard(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("2 · Visualization", style = MaterialTheme.typography.titleMedium)
-                SamplingPlot(result.values, signalFrequency.toDouble(), samplingFrequency.toDouble(), Modifier.fillMaxWidth().height(220.dp))
-            }
-        }
-
-        ElevatedCard(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("3 · Result", style = MaterialTheme.typography.titleMedium)
-                Text(if (nyquistOk) "✓ Nyquist condition satisfied: Fs ≥ 2f" else "⚠ Aliasing occurs: Fs < 2f", style = MaterialTheme.typography.titleSmall)
-                Text("Nyquist frequency: ${"%.0f".format(samplingFrequency / 2f)} Hz")
-                Text("Observed alias frequency: ${"%.0f".format(result.aliasedFrequencyHz)} Hz")
-                Button(onClick = { signalFrequency = 3000f; samplingFrequency = 8000f; sampleCount = 32 }) { Text("Reset experiment") }
-            }
-        }
-
-        ElevatedCard(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("4 · Reflection", style = MaterialTheme.typography.titleMedium)
-                Text("What happens to the observed frequency when Fs becomes lower than twice the signal frequency?")
-            }
-        }
+        ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("1 · Parameters", style = MaterialTheme.typography.titleMedium)
+            Text("Signal frequency  ${signalFrequency.toInt()} Hz")
+            Slider(signalFrequency, { signalFrequency = it }, valueRange = 500f..5000f)
+            Text("Sampling frequency  ${samplingFrequency.toInt()} Hz")
+            Slider(samplingFrequency, { samplingFrequency = it }, valueRange = 2000f..16000f)
+            Text("Samples  $sampleCount")
+            Slider(sampleCount.toFloat(), { sampleCount = it.toInt().coerceIn(16, 64) }, valueRange = 16f..64f, steps = 11)
+        }}
+        ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("2 · Visualization", style = MaterialTheme.typography.titleMedium)
+            SamplingPlot(result.values, signalFrequency.toDouble(), samplingFrequency.toDouble(), Modifier.fillMaxWidth().height(220.dp))
+        }}
+        ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("3 · Result", style = MaterialTheme.typography.titleMedium)
+            Text(if (nyquistOk) "✓ Nyquist condition satisfied: Fs ≥ 2f" else "⚠ Aliasing occurs: Fs < 2f", style = MaterialTheme.typography.titleSmall)
+            Text("Nyquist frequency: ${"%.0f".format(samplingFrequency / 2f)} Hz")
+            Text("Observed alias frequency: ${"%.0f".format(result.aliasedFrequencyHz)} Hz")
+            Button(onClick = { signalFrequency = 3000f; samplingFrequency = 8000f; sampleCount = 32 }) { Text("Reset experiment") }
+        }}
+        ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("4 · Reflection", style = MaterialTheme.typography.titleMedium)
+            LabResearchPanel("LAB02_SAMPLING", "What happens to the observed frequency when Fs becomes lower than twice the signal frequency?", mapOf("signalFrequencyHz" to signalFrequency.toInt().toString(), "samplingFrequencyHz" to samplingFrequency.toInt().toString()))
+        }}
     }
 }
 
