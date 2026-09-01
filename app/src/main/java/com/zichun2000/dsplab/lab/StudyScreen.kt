@@ -98,12 +98,12 @@ fun StudyScreen() {
                     if (answered < items.size) return@Button
                     if (stage == 0) {
                         preScore = score
-                        store.save(ExperimentRecord("PRE_TEST", emptyMap(), "score=$score/${items.size}"))
+                        store.saveAssessment("PRE_TEST", score, items.size)
                         answers.clear()
                         stage = 1
                     } else {
                         postScore = score
-                        store.save(ExperimentRecord("POST_TEST", emptyMap(), "score=$score/${items.size}"))
+                        store.saveAssessment("POST_TEST", score, items.size)
                         postSubmitted = 1
                     }
                 },
