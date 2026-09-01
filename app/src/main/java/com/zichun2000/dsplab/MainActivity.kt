@@ -15,10 +15,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.School
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ElevatedCard
@@ -89,8 +87,8 @@ private fun DspLabApp() {
             if (!showLab) NavigationBar(Modifier.navigationBarsPadding()) {
                 NavigationBarItem(selected = section == Section.HOME, onClick = { section = Section.HOME }, icon = { Icon(Icons.Default.Home, null) }, label = { Text("Home") })
                 NavigationBarItem(selected = section == Section.LABS, onClick = { section = Section.LABS }, icon = { Icon(Icons.Default.List, null) }, label = { Text("Labs") })
-                NavigationBarItem(selected = section == Section.STUDY, onClick = { section = Section.STUDY }, icon = { Icon(Icons.Default.School, null) }, label = { Text("Study") })
-                NavigationBarItem(selected = section == Section.RESEARCH, onClick = { section = Section.RESEARCH }, icon = { Icon(Icons.Default.BarChart, null) }, label = { Text("Research") })
+                NavigationBarItem(selected = section == Section.STUDY, onClick = { section = Section.STUDY }, icon = { Icon(Icons.Default.Home, null) }, label = { Text("Study") })
+                NavigationBarItem(selected = section == Section.RESEARCH, onClick = { section = Section.RESEARCH }, icon = { Icon(Icons.Default.List, null) }, label = { Text("Research") })
             }
         }
     ) { innerPadding ->
