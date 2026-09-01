@@ -30,11 +30,12 @@ fun StudyScreen() {
     var stage by rememberSaveable { mutableIntStateOf(0) }
     var preScore by rememberSaveable { mutableIntStateOf(-1) }
     var postScore by rememberSaveable { mutableIntStateOf(-1) }
-    // SnapshotStateMap is not directly saveable by rememberSaveable on all Compose versions.
-    // The answers are only transient during the current assessment, so remember is sufficient.
+    var postSubmitted by rememberSaveable { mutableIntStateOf(0) }
     val answers = remember { mutableStateMapOf<String, Int>() }
     val items = LearningAssessment.prePostItems
     val score = LearningAssessment.score(answers)
+    val answered = answers.size
+
     Column(
         Modifier.padding(horizontal = 16.dp, vertical = 12.dp).verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -62,7 +63,20 @@ fun StudyScreen() {
                     listOf("01  Signals", "02  Sampling", "03  Convolution", "04  DFT", "05  FIR Filter").forEach { Text(it) }
                 }
             }
-            Button(onClick = { stage = 2; answers.clear() }, modifier = Modifier.fillMaxWidth()) { Text("Start Post-test") }
+            Button(onClick = { stage = 2; answers.clear(); postSubmitted = 0 }, modifier = Modifier.fillMaxWidth()) { Text("Start Post-test") }
+        } else if (postSubmitted == 1) {
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Text("✓ Post-test submitted", style = MaterialTheme.typography.titleMedium)
+                    Text("Score: $postScore / ${items.size}")
+                    if (preScore >= 0) {
+                        val max = items.size.toDouble()
+                        val gain = if (max - preScore > 0) (postScore - preScore) / (max - preScore) else 0.0
+                        Text("Normalized learning gain <g>: ${"%.3f".format(gain)}")
+                    }
+                    Text("The result has been saved for the Research dashboard.")
+                }
+            }
         } else {
             items.forEachIndexed { number, item ->
                 Card(Modifier.fillMaxWidth()) {
@@ -78,9 +92,10 @@ fun StudyScreen() {
                     }
                 }
             }
-            Text("Score: $score / ${items.size}", style = MaterialTheme.typography.titleMedium)
+            Text("Answered: $answered / ${items.size}    Score: $score / ${items.size}", style = MaterialTheme.typography.titleMedium)
             Button(
                 onClick = {
+                    if (answered < items.size) return@Button
                     if (stage == 0) {
                         preScore = score
                         store.save(ExperimentRecord("PRE_TEST", emptyMap(), "score=$score/${items.size}"))
@@ -89,22 +104,13 @@ fun StudyScreen() {
                     } else {
                         postScore = score
                         store.save(ExperimentRecord("POST_TEST", emptyMap(), "score=$score/${items.size}"))
+                        postSubmitted = 1
                     }
                 },
+                enabled = answered == items.size,
                 modifier = Modifier.fillMaxWidth()
             ) { Text(if (stage == 0) "Submit Pre-test" else "Submit Post-test") }
-            if (postScore >= 0 && preScore >= 0) {
-                val max = items.size.toDouble()
-                val gain = if (max - preScore > 0) (postScore - preScore) / (max - preScore) else 0.0
-                Card(Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Learning outcome", style = MaterialTheme.typography.titleMedium)
-                        Text("Pre-test: $preScore / ${items.size}")
-                        Text("Post-test: $postScore / ${items.size}")
-                        Text("Normalized learning gain <g>: ${"%.3f".format(gain)}")
-                    }
-                }
-            }
+            if (answered < items.size) Text("Answer all ${items.size} questions before submitting.")
         }
     }
 }
