@@ -22,8 +22,29 @@ class ExperimentRecordStore(context: Context) {
             put("timestamp", record.timestamp)
             put("parameters", JSONObject(record.parameters))
         })
-        // Commit immediately so a subsequent Research screen always sees the new record.
         prefs.edit().putString(KEY, current.toString()).commit()
+    }
+
+    // Assessment results also get a dedicated preference entry. This makes the
+    // research dashboard independent of JSON-array parsing/order and guarantees
+    // that the latest Post-test survives navigation and recomposition.
+    fun saveAssessment(type: String, score: Int, maxScore: Int) {
+        prefs.edit()
+            .putInt("assessment_${type}_score", score)
+            .putInt("assessment_${type}_max", maxScore)
+            .putLong("assessment_${type}_timestamp", System.currentTimeMillis())
+            .commit()
+        save(ExperimentRecord(type, emptyMap(), "score=$score/$maxScore"))
+    }
+
+    fun getAssessmentScore(type: String): Int? {
+        val key = "assessment_${type}_score"
+        return if (prefs.contains(key)) prefs.getInt(key, -1).takeIf { it >= 0 } else null
+    }
+
+    fun getAssessmentMax(type: String): Int? {
+        val key = "assessment_${type}_max"
+        return if (prefs.contains(key)) prefs.getInt(key, 0).takeIf { it > 0 } else null
     }
 
     fun loadAll(): List<ExperimentRecord> {
