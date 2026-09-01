@@ -22,7 +22,8 @@ class ExperimentRecordStore(context: Context) {
             put("timestamp", record.timestamp)
             put("parameters", JSONObject(record.parameters))
         })
-        prefs.edit().putString(KEY, current.toString()).apply()
+        // Commit immediately so a subsequent Research screen always sees the new record.
+        prefs.edit().putString(KEY, current.toString()).commit()
     }
 
     fun loadAll(): List<ExperimentRecord> {
