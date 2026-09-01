@@ -34,49 +34,33 @@ fun DftLabScreen() {
     val spectrum = dft(samples, sampleRate.toDouble())
     val peak = spectrum.maxByOrNull { it.magnitude }
     val resolution = sampleRate / n
-
-    Column(
-        Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
+    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("DFT & Frequency Spectrum", style = MaterialTheme.typography.headlineSmall)
         Text("Move between time and frequency domains and identify the dominant spectral component.", style = MaterialTheme.typography.bodyMedium)
-
-        ElevatedCard(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("1 · Parameters", style = MaterialTheme.typography.titleMedium)
-                Text("Signal frequency  ${"%.0f".format(frequency)} Hz")
-                Slider(frequency, { frequency = it }, valueRange = 250f..3500f)
-                Text("Sampling frequency  ${"%.0f".format(sampleRate)} Hz")
-                Slider(sampleRate, { sampleRate = it }, valueRange = 4000f..16000f)
-                Text("DFT length  N = $n")
-            }
-        }
-
-        ElevatedCard(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("2 · Time domain", style = MaterialTheme.typography.titleMedium)
-                SpectrumPlot(samples, -1, Modifier.fillMaxWidth().height(150.dp))
-            }
-        }
-
-        ElevatedCard(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("3 · Frequency domain", style = MaterialTheme.typography.titleMedium)
-                SpectrumPlot(spectrum.map { it.magnitude }, spectrum.indexOf(peak), Modifier.fillMaxWidth().height(210.dp))
-                Text("Resolution: ${"%.1f".format(resolution)} Hz/bin")
-                Text("Detected peak: ${"%.1f".format(peak?.frequency ?: 0.0)} Hz", style = MaterialTheme.typography.titleSmall)
-                Text(if (peak != null && kotlin.math.abs(peak.frequency - frequency) <= resolution) "✓ Peak agrees with the input within one DFT bin." else "⚠ Spectral peak is shifted from the exact input frequency.")
-                Button(onClick = { frequency = 1000f; sampleRate = 8000f }) { Text("Reset experiment") }
-            }
-        }
-
-        ElevatedCard(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("4 · Reflection", style = MaterialTheme.typography.titleMedium)
-                Text("Why do N and the sampling rate determine frequency resolution? What changes when the tone lies between DFT bins?")
-            }
-        }
+        ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("1 · Parameters", style = MaterialTheme.typography.titleMedium)
+            Text("Signal frequency  ${"%.0f".format(frequency)} Hz")
+            Slider(frequency, { frequency = it }, valueRange = 250f..3500f)
+            Text("Sampling frequency  ${"%.0f".format(sampleRate)} Hz")
+            Slider(sampleRate, { sampleRate = it }, valueRange = 4000f..16000f)
+            Text("DFT length  N = $n")
+        }}
+        ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("2 · Time domain", style = MaterialTheme.typography.titleMedium)
+            SpectrumPlot(samples, -1, Modifier.fillMaxWidth().height(150.dp))
+        }}
+        ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("3 · Frequency domain", style = MaterialTheme.typography.titleMedium)
+            SpectrumPlot(spectrum.map { it.magnitude }, spectrum.indexOf(peak), Modifier.fillMaxWidth().height(210.dp))
+            Text("Resolution: ${"%.1f".format(resolution)} Hz/bin")
+            Text("Detected peak: ${"%.1f".format(peak?.frequency ?: 0.0)} Hz", style = MaterialTheme.typography.titleSmall)
+            Text(if (peak != null && kotlin.math.abs(peak.frequency - frequency) <= resolution) "✓ Peak agrees with the input within one DFT bin." else "⚠ Spectral peak is shifted from the exact input frequency.")
+            Button(onClick = { frequency = 1000f; sampleRate = 8000f }) { Text("Reset experiment") }
+        }}
+        ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("4 · Reflection", style = MaterialTheme.typography.titleMedium)
+            LabResearchPanel("LAB04_DFT", "Why do N and the sampling rate determine frequency resolution? What changes when the tone lies between DFT bins?", mapOf("frequencyHz" to "${"%.0f".format(frequency)}", "sampleRateHz" to "${"%.0f".format(sampleRate)}"))
+        }}
     }
 }
 
@@ -84,9 +68,7 @@ fun DftLabScreen() {
 private fun SpectrumPlot(values: List<Double>, selected: Int, modifier: Modifier) {
     Canvas(modifier.padding(vertical = 8.dp)) {
         if (values.isEmpty()) return@Canvas
-        val left = 20f
-        val right = size.width - 15f
-        val bottom = size.height - 15f
+        val left = 20f; val right = size.width - 15f; val bottom = size.height - 15f
         val maxValue = (values.maxOrNull() ?: 1.0).coerceAtLeast(1e-9).toFloat()
         val step = (right - left) / values.size
         drawLine(Color.Black, Offset(left, bottom), Offset(right, bottom), strokeWidth = 2f)
