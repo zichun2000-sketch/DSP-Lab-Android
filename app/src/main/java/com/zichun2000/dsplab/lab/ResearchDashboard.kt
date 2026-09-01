@@ -10,7 +10,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -24,12 +23,13 @@ import androidx.compose.ui.unit.dp
 fun ResearchDashboard() {
     val context = LocalContext.current
     var refreshKey by remember { mutableStateOf(0) }
-    val records = remember(refreshKey) { ExperimentRecordStore(context).loadAll() }
+    val store = remember(context, refreshKey) { ExperimentRecordStore(context) }
+    val records = remember(refreshKey) { store.loadAll() }
     val preRecord = records.lastOrNull { it.labId == "PRE_TEST" }
     val postRecord = records.lastOrNull { it.labId == "POST_TEST" }
-    val pre = preRecord?.observation?.substringAfter("score=")?.substringBefore("/")?.toIntOrNull()
-    val post = postRecord?.observation?.substringAfter("score=")?.substringBefore("/")?.toIntOrNull()
-    val maxScore = LearningAssessment.prePostItems.size.toDouble()
+    val pre = store.getAssessmentScore("PRE_TEST") ?: preRecord?.observation?.substringAfter("score=")?.substringBefore("/")?.toIntOrNull()
+    val post = store.getAssessmentScore("POST_TEST") ?: postRecord?.observation?.substringAfter("score=")?.substringBefore("/")?.toIntOrNull()
+    val maxScore = (store.getAssessmentMax("POST_TEST") ?: store.getAssessmentMax("PRE_TEST") ?: LearningAssessment.prePostItems.size).toDouble()
     val labCount = (1..5).count { number -> records.any { it.labId == "LAB_${"%02d".format(number)}" } }
 
     Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -51,7 +51,7 @@ fun ResearchDashboard() {
             Text("Activity", style = MaterialTheme.typography.titleMedium)
             Text("Labs completed: $labCount / 5")
             Text("Recorded events: ${records.size}")
-            Text("Pre-test record: ${if (preRecord != null) "✓" else "—"}    Post-test record: ${if (postRecord != null) "✓" else "—"}")
+            Text("Pre-test record: ${if (preRecord != null || pre != null) "✓" else "—"}    Post-test record: ${if (postRecord != null || post != null) "✓" else "—"}")
             Text("Data remain on this device in the prototype.")
         }}
         Button(onClick = { refreshKey++ }, modifier = Modifier.fillMaxWidth()) { Text("Refresh data") }
