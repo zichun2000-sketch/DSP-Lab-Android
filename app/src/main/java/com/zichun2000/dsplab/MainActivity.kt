@@ -48,6 +48,7 @@ import com.zichun2000.dsplab.dsp.generateDiscreteSignal
 import com.zichun2000.dsplab.lab.ConvolutionLabScreen
 import com.zichun2000.dsplab.lab.DftLabScreen
 import com.zichun2000.dsplab.lab.FilterLabScreen
+import com.zichun2000.dsplab.lab.LabResearchPanel
 import com.zichun2000.dsplab.lab.ResearchDashboard
 import com.zichun2000.dsplab.lab.SamplingLabScreen
 import com.zichun2000.dsplab.lab.SignalPlot
@@ -77,20 +78,13 @@ private fun DspLabApp() {
     var selectedLab by rememberSaveable { mutableStateOf<Lab?>(null) }
     val showLab = selectedLab != null
     Scaffold(
-        topBar = {
-            if (showLab) TopAppBar(
-                title = { Text("Lab ${selectedLab!!.number} · ${selectedLab!!.title}") },
-                navigationIcon = { IconButton(onClick = { selectedLab = null }) { Icon(Icons.Default.ArrowBack, "Back") } }
-            ) else TopAppBar(title = { Text("DSP Learning Platform") })
-        },
-        bottomBar = {
-            if (!showLab) NavigationBar(Modifier.navigationBarsPadding()) {
-                NavigationBarItem(selected = section == Section.HOME, onClick = { section = Section.HOME }, icon = { Icon(Icons.Default.Home, null) }, label = { Text("Home") })
-                NavigationBarItem(selected = section == Section.LABS, onClick = { section = Section.LABS }, icon = { Icon(Icons.Default.List, null) }, label = { Text("Labs") })
-                NavigationBarItem(selected = section == Section.STUDY, onClick = { section = Section.STUDY }, icon = { Icon(Icons.Default.Home, null) }, label = { Text("Study") })
-                NavigationBarItem(selected = section == Section.RESEARCH, onClick = { section = Section.RESEARCH }, icon = { Icon(Icons.Default.List, null) }, label = { Text("Research") })
-            }
-        }
+        topBar = { if (showLab) TopAppBar(title = { Text("Lab ${selectedLab!!.number} · ${selectedLab!!.title}") }, navigationIcon = { IconButton(onClick = { selectedLab = null }) { Icon(Icons.Default.ArrowBack, "Back") } }) else TopAppBar(title = { Text("DSP Learning Platform") }) },
+        bottomBar = { if (!showLab) NavigationBar(Modifier.navigationBarsPadding()) {
+            NavigationBarItem(selected = section == Section.HOME, onClick = { section = Section.HOME }, icon = { Icon(Icons.Default.Home, null) }, label = { Text("Home") })
+            NavigationBarItem(selected = section == Section.LABS, onClick = { section = Section.LABS }, icon = { Icon(Icons.Default.List, null) }, label = { Text("Labs") })
+            NavigationBarItem(selected = section == Section.STUDY, onClick = { section = Section.STUDY }, icon = { Icon(Icons.Default.Home, null) }, label = { Text("Study") })
+            NavigationBarItem(selected = section == Section.RESEARCH, onClick = { section = Section.RESEARCH }, icon = { Icon(Icons.Default.List, null) }, label = { Text("Research") })
+        }}
     ) { innerPadding ->
         Column(Modifier.fillMaxSize().padding(innerPadding)) {
             if (selectedLab != null) when (selectedLab!!) {
@@ -114,16 +108,8 @@ private fun HomeScreen(onLabs: () -> Unit, onStudy: () -> Unit) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text("Digital Signal Processing", style = MaterialTheme.typography.headlineMedium)
         Text("Interactive Android experiments for learning DSP concepts through visualization and parameter manipulation.", style = MaterialTheme.typography.bodyLarge)
-        Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("5 interactive laboratories", style = MaterialTheme.typography.titleLarge)
-            Text("Signals → Sampling → Convolution → DFT → FIR Filter")
-            Button(onClick = onLabs, modifier = Modifier.fillMaxWidth()) { Text("Explore Labs") }
-        }}
-        Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Learning Study", style = MaterialTheme.typography.titleLarge)
-            Text("Complete a pre-test, learning activities, and post-test to estimate learning gain.")
-            OutlinedButton(onClick = onStudy, modifier = Modifier.fillMaxWidth()) { Text("Start Study") }
-        }}
+        Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { Text("5 interactive laboratories", style = MaterialTheme.typography.titleLarge); Text("Signals → Sampling → Convolution → DFT → FIR Filter"); Button(onClick = onLabs, modifier = Modifier.fillMaxWidth()) { Text("Explore Labs") } }}
+        Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { Text("Learning Study", style = MaterialTheme.typography.titleLarge); Text("Complete a pre-test, learning activities, and post-test to estimate learning gain."); OutlinedButton(onClick = onStudy, modifier = Modifier.fillMaxWidth()) { Text("Start Study") } }}
         Text("Designed as a lightweight teaching-research prototype.", style = MaterialTheme.typography.bodyMedium)
     }
 }
@@ -133,15 +119,7 @@ private fun LabsScreen(onSelect: (Lab) -> Unit) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("DSP Laboratories", style = MaterialTheme.typography.headlineSmall)
         Text("Choose an experiment. Each lab is optimized for portrait-phone use.")
-        Lab.entries.forEach { lab ->
-            Card(onClick = { onSelect(lab) }, modifier = Modifier.fillMaxWidth()) { Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                Text(lab.number, style = MaterialTheme.typography.titleLarge)
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(lab.title, style = MaterialTheme.typography.titleMedium)
-                    Text(lab.description, style = MaterialTheme.typography.bodyMedium)
-                }
-            }}
-        }
+        Lab.entries.forEach { lab -> Card(onClick = { onSelect(lab) }, modifier = Modifier.fillMaxWidth()) { Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) { Text(lab.number, style = MaterialTheme.typography.titleLarge); Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) { Text(lab.title, style = MaterialTheme.typography.titleMedium); Text(lab.description, style = MaterialTheme.typography.bodyMedium) } }} }
     }
 }
 
@@ -159,32 +137,12 @@ private fun SignalLabScreen() {
     Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Discrete-Time Signals", style = MaterialTheme.typography.headlineSmall)
         Text("Change one parameter at a time and connect the control directly to the waveform.", style = MaterialTheme.typography.bodyMedium)
-        ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("1 · Signal type", style = MaterialTheme.typography.titleMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { SignalType.entries.forEachIndexed { index, signalType -> FilterChip(selected = index == typeIndex, onClick = { typeIndex = index }, label = { Text(signalType.displayName) }) } }
-        }}
-        ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("2 · Parameters", style = MaterialTheme.typography.titleMedium)
-            ParameterSlider("Amplitude", amplitude, 0.1f..2f, "%.2f") { amplitude = it }
-            if (type == SignalType.SINE) { ParameterSlider("Frequency", frequency, 0.25f..12f, "%.2f") { frequency = it }; ParameterSlider("Phase", phaseDegrees, 0f..360f, "%.0f°") { phaseDegrees = it } }
-            if (type == SignalType.EXPONENTIAL) ParameterSlider("Decay", decay, 0.01f..0.20f, "%.2f") { decay = it }
-            Text("Samples  $sampleCount")
-            Slider(value = sampleCount.toFloat(), onValueChange = { sampleCount = it.toInt().coerceIn(16, 64) }, valueRange = 16f..64f, steps = 11)
-        }}
-        ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("3 · Visualization", style = MaterialTheme.typography.titleMedium)
-            SignalPlot(values, Modifier.fillMaxWidth().height(220.dp))
-            Text("Samples shown: $sampleCount")
-        }}
-        ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("4 · Reflection", style = MaterialTheme.typography.titleMedium)
-            Text("How does increasing frequency change the number of oscillations in the same sample window? What changes when amplitude or phase is adjusted?")
-        }}
+        ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) { Text("1 · Signal type", style = MaterialTheme.typography.titleMedium); Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { SignalType.entries.forEachIndexed { index, signalType -> FilterChip(selected = index == typeIndex, onClick = { typeIndex = index }, label = { Text(signalType.displayName) }) } } }}
+        ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) { Text("2 · Parameters", style = MaterialTheme.typography.titleMedium); ParameterSlider("Amplitude", amplitude, 0.1f..2f, "%.2f") { amplitude = it }; if (type == SignalType.SINE) { ParameterSlider("Frequency", frequency, 0.25f..12f, "%.2f") { frequency = it }; ParameterSlider("Phase", phaseDegrees, 0f..360f, "%.0f°") { phaseDegrees = it } }; if (type == SignalType.EXPONENTIAL) ParameterSlider("Decay", decay, 0.01f..0.20f, "%.2f") { decay = it }; Text("Samples  $sampleCount"); Slider(value = sampleCount.toFloat(), onValueChange = { sampleCount = it.toInt().coerceIn(16, 64) }, valueRange = 16f..64f, steps = 11) }}
+        ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { Text("3 · Visualization", style = MaterialTheme.typography.titleMedium); SignalPlot(values, Modifier.fillMaxWidth().height(220.dp)); Text("Samples shown: $sampleCount") }}
+        ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) { Text("4 · Reflection", style = MaterialTheme.typography.titleMedium); LabResearchPanel("LAB01_SIGNALS", "How does increasing frequency change the number of oscillations in the same sample window? What changes when amplitude or phase is adjusted?", mapOf("signalType" to type.displayName, "amplitude" to "%.2f".format(amplitude), "frequency" to "%.2f".format(frequency), "phaseDegrees" to "%.0f".format(phaseDegrees), "samples" to sampleCount.toString())) }}
     }
 }
 
 @Composable
-private fun ParameterSlider(label: String, value: Float, range: ClosedFloatingPointRange<Float>, format: String, onValueChange: (Float) -> Unit) {
-    Text("$label  ${format.format(value)}")
-    Slider(value = value, onValueChange = onValueChange, valueRange = range)
-}
+private fun ParameterSlider(label: String, value: Float, range: ClosedFloatingPointRange<Float>, format: String, onValueChange: (Float) -> Unit) { Text("$label  ${format.format(value)}"); Slider(value = value, onValueChange = onValueChange, valueRange = range) }
