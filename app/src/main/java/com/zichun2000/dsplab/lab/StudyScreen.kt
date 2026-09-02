@@ -31,6 +31,7 @@ fun StudyScreen() {
     var preScore by rememberSaveable { mutableIntStateOf(-1) }
     var postScore by rememberSaveable { mutableIntStateOf(-1) }
     var postSubmitted by rememberSaveable { mutableIntStateOf(0) }
+    var postSaveFailed by rememberSaveable { mutableIntStateOf(0) }
     val answers = remember { mutableStateMapOf<String, Int>() }
     val items = LearningAssessment.prePostItems
     val score = LearningAssessment.score(answers)
@@ -63,7 +64,7 @@ fun StudyScreen() {
                     listOf("01  Signals", "02  Sampling", "03  Convolution", "04  DFT", "05  FIR Filter").forEach { Text(it) }
                 }
             }
-            Button(onClick = { stage = 2; answers.clear(); postSubmitted = 0 }, modifier = Modifier.fillMaxWidth()) { Text("Start Post-test") }
+            Button(onClick = { stage = 2; answers.clear(); postSubmitted = 0; postSaveFailed = 0 }, modifier = Modifier.fillMaxWidth()) { Text("Start Post-test") }
         } else if (postSubmitted == 1) {
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -103,14 +104,15 @@ fun StudyScreen() {
                         stage = 1
                     } else {
                         postScore = score
-                        store.saveAssessment("POST_TEST", score, items.size)
-                        postSubmitted = 1
+                        postSaveFailed = if (store.saveAssessment("POST_TEST", score, items.size)) 0 else 1
+                        if (postSaveFailed == 0) postSubmitted = 1
                     }
                 },
                 enabled = answered == items.size,
                 modifier = Modifier.fillMaxWidth()
             ) { Text(if (stage == 0) "Submit Pre-test" else "Submit Post-test") }
             if (answered < items.size) Text("Answer all ${items.size} questions before submitting.")
+            if (postSaveFailed == 1) Text("⚠ Unable to save the Post-test result. Please try Submit again.")
         }
     }
 }
