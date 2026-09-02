@@ -32,11 +32,11 @@ fun ResearchDashboard() {
     val post = store.getAssessmentScore("POST_TEST") ?: postRecord?.observation?.substringAfter("score=")?.substringBefore("/")?.toIntOrNull()
     val maxScore = (store.getAssessmentMax("POST_TEST") ?: store.getAssessmentMax("PRE_TEST") ?: LearningAssessment.prePostItems.size).toDouble()
     val labIds = listOf(
-        "LAB01_SIGNAL",
+        "LAB01_SIGNALS",
         "LAB02_SAMPLING",
         "LAB03_CONVOLUTION",
         "LAB04_DFT",
-        "LAB05_FILTER"
+        "LAB05_FIR"
     )
     val labCount = labIds.count { id -> records.any { it.labId == id } }
 
