@@ -30,29 +30,32 @@ import kotlin.math.max
 @Composable
 fun ConvolutionLabScreen() {
     var selectedStep by rememberSaveable { mutableIntStateOf(2) }
-    val x = listOf(1.0, 2.0, 1.0)
-    val h = listOf(1.0, -1.0, 0.5)
+    var mode by rememberSaveable { mutableIntStateOf(0) }
+    val x = if (mode == 0) listOf(1.0, 2.0, 1.0) else listOf(1.0, 2.0, 1.0, 0.0)
+    val h = if (mode == 0) listOf(1.0, -1.0, 0.5) else listOf(0.25, 0.5, 0.25)
     val y = convolve(x, h)
     val step = selectedStep.coerceIn(0, y.lastIndex)
     val detail = convolutionStep(x, h, step)
+    val manual = detail.products.sum()
     Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Discrete Convolution", style = MaterialTheme.typography.headlineSmall)
-        Text("Follow the overlap step by step and connect each product sum to one output sample.", style = MaterialTheme.typography.bodyMedium)
+        Text("Compute linear convolution, inspect the overlap at each output index, and verify one output sample by hand.", style = MaterialTheme.typography.bodyMedium)
         ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("1 · Sequences", style = MaterialTheme.typography.titleMedium)
-            Text("x[n] = ${x.joinToString(prefix = "[", postfix = "]")}")
-            Text("h[n] = ${h.joinToString(prefix = "[", postfix = "]")}")
+            Text("1 · Experiment mode", style = MaterialTheme.typography.titleMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = { mode = 0; selectedStep = 2 }) { Text("Basic") }
+                Button(onClick = { mode = 1; selectedStep = 2 }) { Text("Smoothing") }
+            }
+            Text(if (mode == 0) "x[n] = [1, 2, 1], h[n] = [1, −1, 0.5]" else "x[n] = [1, 2, 1, 0], h[n] = [0.25, 0.5, 0.25]")
+            Text("Task: predict one y[n] before moving the step slider, then compare your calculation with the program result.")
         }}
         ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text("2 · Convolution step", style = MaterialTheme.typography.titleMedium)
             Text("Output index n = $step")
             Slider(value = step.toFloat(), onValueChange = { selectedStep = it.toInt().coerceIn(0, y.lastIndex) }, valueRange = 0f..y.lastIndex.toFloat(), steps = max(0, y.size - 2))
             Text("Products: ${detail.products.joinToString { "%.2f".format(it) }}")
-            Text("y[$step] = ${"%.2f".format(detail.sum)}", style = MaterialTheme.typography.titleSmall)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { selectedStep = 0 }) { Text("Start") }
-                Button(onClick = { selectedStep = (step + 1).coerceAtMost(y.lastIndex) }) { Text("Next") }
-            }
+            Text("Sum of products = ${"%.2f".format(manual)}")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { Button(onClick = { selectedStep = 0 }) { Text("Start") }; Button(onClick = { selectedStep = (step + 1).coerceAtMost(y.lastIndex) }) { Text("Next") } }
         }}
         ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("3 · Output", style = MaterialTheme.typography.titleMedium)
@@ -60,8 +63,13 @@ fun ConvolutionLabScreen() {
             Text("y[n] = ${y.joinToString(prefix = "[", postfix = "]") { "%.2f".format(it) }}")
         }}
         ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("4 · Reflection", style = MaterialTheme.typography.titleMedium)
-            LabResearchPanel("LAB03_CONVOLUTION", "Which samples of x[n] and h[n] contribute to y[$step]? How does the overlap change as n increases?", mapOf("step" to step.toString()))
+            Text("4 · System interpretation", style = MaterialTheme.typography.titleMedium)
+            Text(if (mode == 1) "The smoothing kernel averages neighboring samples, so rapid changes in x[n] are reduced." else "The output is formed by weighted overlap between x[n] and a reversed-and-shifted h[n].")
+            Text("At n = $step, manual sum = ${"%.2f".format(manual)} and computed y[$step] = ${"%.2f".format(y[step])}.")
+        }}
+        ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("5 · Reflection", style = MaterialTheme.typography.titleMedium)
+            LabResearchPanel("LAB03_CONVOLUTION", "Choose Basic and Smoothing. Verify one output sample by hand. Which input samples overlap at the selected n, and why does the smoothing kernel reduce rapid variation?", mapOf("mode" to if (mode == 0) "basic" else "smoothing", "step" to step.toString(), "manualSum" to "%.2f".format(manual)))
         }}
     }
 }
