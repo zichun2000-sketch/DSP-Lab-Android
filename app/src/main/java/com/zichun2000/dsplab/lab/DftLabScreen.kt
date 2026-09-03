@@ -1,5 +1,6 @@
 package com.zichun2000.dsplab.lab
 
+import android.graphics.Paint
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -23,6 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.unit.dp
 import com.zichun2000.dsplab.dsp.dft
 import com.zichun2000.dsplab.dsp.sineSamples
@@ -53,11 +55,11 @@ fun DftLabScreen() {
         }}
         ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("2 · Time domain", style = MaterialTheme.typography.titleMedium)
-            SpectrumPlot(samples, -1, Modifier.fillMaxWidth().height(150.dp))
+            SpectrumPlot(samples, -1, (n - 1).toDouble(), "Sample n", "Amplitude", Modifier.fillMaxWidth().height(170.dp))
         }}
         ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text("3 · Frequency domain", style = MaterialTheme.typography.titleMedium)
-            SpectrumPlot(positive.map { it.magnitude }, positive.indexOf(peak), Modifier.fillMaxWidth().height(210.dp))
+            SpectrumPlot(positive.map { it.magnitude }, positive.indexOf(peak), (sampleRate / 2f).toDouble(), "Frequency (Hz)", "Magnitude", Modifier.fillMaxWidth().height(230.dp))
             Text("Resolution: ${"%.2f".format(resolution)} Hz/bin")
             Text("Detected peak: ${"%.2f".format(peak?.frequency ?: 0.0)} Hz  (bin $peakBin)", style = MaterialTheme.typography.titleSmall)
             Text(if (coherentTone) "✓ Input frequency is aligned with a DFT bin." else "⚠ Input frequency lies between bins; leakage is expected.")
@@ -82,16 +84,58 @@ fun DftLabScreen() {
 }
 
 @Composable
-private fun SpectrumPlot(values: List<Double>, selected: Int, modifier: Modifier) {
+private fun SpectrumPlot(
+    values: List<Double>,
+    selected: Int,
+    xMax: Double,
+    xLabel: String,
+    yLabel: String,
+    modifier: Modifier
+) {
     Canvas(modifier.padding(vertical = 8.dp)) {
         if (values.isEmpty()) return@Canvas
-        val left = 20f; val right = size.width - 15f; val bottom = size.height - 15f
+
+        val left = 72f
+        val right = size.width - 18f
+        val top = 24f
+        val bottom = size.height - 46f
         val maxValue = (values.maxOrNull() ?: 1.0).coerceAtLeast(1e-9).toFloat()
-        val step = (right - left) / values.size
+        val width = right - left
+        val height = bottom - top
+        val step = if (values.size <= 1) width else width / (values.size - 1)
+
+        val textPaint = Paint().apply {
+            color = android.graphics.Color.BLACK
+            textSize = 24f
+            isAntiAlias = true
+        }
+        val smallTextPaint = Paint(textPaint).apply { textSize = 20f }
+
         drawLine(Color.Black, Offset(left, bottom), Offset(right, bottom), strokeWidth = 2f)
+        drawLine(Color.Black, Offset(left, top), Offset(left, bottom), strokeWidth = 2f)
+
+        listOf(0.0, xMax / 2.0, xMax).forEachIndexed { index, value ->
+            val x = left + width * index / 2f
+            drawLine(Color.Black, Offset(x, bottom - 5f), Offset(x, bottom + 5f), strokeWidth = 1.5f)
+            val label = if (xMax >= 100.0) "%.0f".format(value) else "%.1f".format(value)
+            drawContext.canvas.nativeCanvas.drawText(label, x - 18f, bottom + 25f, smallTextPaint)
+        }
+        listOf(maxValue, maxValue / 2f, 0f).forEach { value ->
+            val y = bottom - (value / maxValue) * height
+            drawLine(Color.Black, Offset(left - 5f, y), Offset(left + 5f, y), strokeWidth = 1.5f)
+            val label = if (maxValue >= 10f) "%.0f".format(value) else "%.2f".format(value)
+            drawContext.canvas.nativeCanvas.drawText(label, 6f, y + 7f, smallTextPaint)
+        }
+
+        drawContext.canvas.nativeCanvas.drawText(xLabel, right - 125f, size.height - 4f, textPaint)
+        drawContext.canvas.nativeCanvas.save()
+        drawContext.canvas.nativeCanvas.rotate(-90f, 18f, (top + bottom) / 2f)
+        drawContext.canvas.nativeCanvas.drawText(yLabel, 18f, (top + bottom) / 2f, textPaint)
+        drawContext.canvas.nativeCanvas.restore()
+
         values.forEachIndexed { index, value ->
-            val x = left + step * (index + 0.5f)
-            val y = bottom - (value.toFloat() / maxValue) * (size.height - 35f)
+            val x = if (values.size <= 1) left else left + step * index
+            val y = bottom - (value.toFloat() / maxValue) * height
             drawLine(Color.Black, Offset(x, bottom), Offset(x, y), strokeWidth = if (index == selected) 5f else 2f)
             if (index == selected) drawCircle(Color.Black, 7f, Offset(x, y))
         }
