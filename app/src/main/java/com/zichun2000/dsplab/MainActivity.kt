@@ -32,7 +32,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -64,7 +63,7 @@ class MainActivity : ComponentActivity() {
 
 private enum class Section { HOME, LABS, STUDY, RESEARCH }
 private enum class Lab(val number: String, val title: String, val description: String) {
-    SIGNAL("01", "Discrete-Time Signals", "Generate and visualize basic discrete signals."),
+    SIGNAL("01", "Discrete-Time Signals", "Generate and analyze basic discrete signals."),
     SAMPLING("02", "Sampling & Aliasing", "Explore sampling rate and aliasing."),
     CONVOLUTION("03", "Discrete Convolution", "Understand convolution through interactive examples."),
     DFT("04", "DFT & Frequency Spectrum", "Observe the transition from time to frequency domain."),
@@ -78,7 +77,7 @@ private fun DspLabApp() {
     var selectedLab by rememberSaveable { mutableStateOf<Lab?>(null) }
     val showLab = selectedLab != null
     Scaffold(
-        topBar = { if (showLab) TopAppBar(title = { Text("Lab ${selectedLab!!.number} · ${selectedLab!!.title}") }, navigationIcon = { IconButton(onClick = { selectedLab = null }) { Icon(Icons.Default.ArrowBack, "Back") } }) else TopAppBar(title = { Text("DSP Learning Platform") }) },
+        topBar = { if (showLab) androidx.compose.material3.TopAppBar(title = { Text("Lab ${selectedLab!!.number} · ${selectedLab!!.title}") }, navigationIcon = { IconButton(onClick = { selectedLab = null }) { Icon(Icons.Default.ArrowBack, "Back") } }) else androidx.compose.material3.TopAppBar(title = { Text("DSP Learning Platform") }) },
         bottomBar = { if (!showLab) NavigationBar(Modifier.navigationBarsPadding()) {
             NavigationBarItem(selected = section == Section.HOME, onClick = { section = Section.HOME }, icon = { Icon(Icons.Default.Home, null) }, label = { Text("Home") })
             NavigationBarItem(selected = section == Section.LABS, onClick = { section = Section.LABS }, icon = { Icon(Icons.Default.List, null) }, label = { Text("Labs") })
@@ -134,13 +133,24 @@ private fun SignalLabScreen() {
     val type = SignalType.entries[typeIndex]
     val phase = phaseDegrees * PI.toFloat() / 180f
     val values = generateDiscreteSignal(type, sampleCount, SignalParameters(amplitude.toDouble(), frequency.toDouble(), phase.toDouble(), decay.toDouble()))
+    val mean = values.average()
+    val maxValue = values.maxOrNull() ?: 0.0
+    val minValue = values.minOrNull() ?: 0.0
+    val peakToPeak = maxValue - minValue
     Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Discrete-Time Signals", style = MaterialTheme.typography.headlineSmall)
-        Text("Change one parameter at a time and connect the control directly to the waveform.", style = MaterialTheme.typography.bodyMedium)
+        Text("Generate a signal, measure its basic properties, and investigate how amplitude, frequency, phase, and decay affect a discrete sequence.", style = MaterialTheme.typography.bodyMedium)
         ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) { Text("1 · Signal type", style = MaterialTheme.typography.titleMedium); Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { SignalType.entries.forEachIndexed { index, signalType -> FilterChip(selected = index == typeIndex, onClick = { typeIndex = index }, label = { Text(signalType.displayName) }) } } }}
         ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) { Text("2 · Parameters", style = MaterialTheme.typography.titleMedium); ParameterSlider("Amplitude", amplitude, 0.1f..2f, "%.2f") { amplitude = it }; if (type == SignalType.SINE) { ParameterSlider("Frequency", frequency, 0.25f..12f, "%.2f") { frequency = it }; ParameterSlider("Phase", phaseDegrees, 0f..360f, "%.0f°") { phaseDegrees = it } }; if (type == SignalType.EXPONENTIAL) ParameterSlider("Decay", decay, 0.01f..0.20f, "%.2f") { decay = it }; Text("Samples  $sampleCount"); Slider(value = sampleCount.toFloat(), onValueChange = { sampleCount = it.toInt().coerceIn(16, 64) }, valueRange = 16f..64f, steps = 11) }}
         ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) { Text("3 · Visualization", style = MaterialTheme.typography.titleMedium); SignalPlot(values, Modifier.fillMaxWidth().height(220.dp)); Text("Samples shown: $sampleCount") }}
-        ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) { Text("4 · Reflection", style = MaterialTheme.typography.titleMedium); LabResearchPanel("LAB01_SIGNALS", "How does increasing frequency change the number of oscillations in the same sample window? What changes when amplitude or phase is adjusted?", mapOf("signalType" to type.displayName, "amplitude" to "%.2f".format(amplitude), "frequency" to "%.2f".format(frequency), "phaseDegrees" to "%.0f".format(phaseDegrees), "samples" to sampleCount.toString())) }}
+        ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("4 · Quantitative observation", style = MaterialTheme.typography.titleMedium)
+            Text("Maximum: ${"%.3f".format(maxValue)}   Minimum: ${"%.3f".format(minValue)}")
+            Text("Mean: ${"%.3f".format(mean)}   Peak-to-peak: ${"%.3f".format(peakToPeak)}")
+            Text("Investigation: keep samples fixed, then change only one parameter. Compare the waveform and these measurements before writing your conclusion.")
+            Button(onClick = { amplitude = 1f; frequency = 2f; phaseDegrees = 0f; decay = 0.06f; sampleCount = 32 }) { Text("Reset experiment") }
+        }}
+        ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) { Text("5 · Reflection", style = MaterialTheme.typography.titleMedium); LabResearchPanel("LAB01_SIGNALS", "Investigation: compare two frequencies with the same sample count. Then compare two amplitudes. What changes in oscillation rate, peak-to-peak value, and mean? Explain the effect of phase for a sinusoid.", mapOf("signalType" to type.displayName, "amplitude" to "%.2f".format(amplitude), "frequency" to "%.2f".format(frequency), "phaseDegrees" to "%.0f".format(phaseDegrees), "samples" to sampleCount.toString(), "mean" to "%.3f".format(mean), "peakToPeak" to "%.3f".format(peakToPeak))) }}
     }
 }
 
