@@ -59,7 +59,7 @@ fun DftLabScreen() {
         }}
         ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text("3 · Frequency domain", style = MaterialTheme.typography.titleMedium)
-            SpectrumPlot(positive.map { it.magnitude }, positive.indexOf(peak), (sampleRate / 2f).toDouble(), "Frequency (Hz)", "Magnitude", Modifier.fillMaxWidth().height(230.dp))
+            SpectrumPlot(positive.map { it.magnitude }, positive.indexOf(peak), (sampleRate / 2f).toDouble(), "Frequency (Hz)", "Magnitude", Modifier.fillMaxWidth().height(280.dp))
             Text("Resolution: ${"%.2f".format(resolution)} Hz/bin")
             Text("Detected peak: ${"%.2f".format(peak?.frequency ?: 0.0)} Hz  (bin $peakBin)", style = MaterialTheme.typography.titleSmall)
             Text(if (coherentTone) "✓ Input frequency is aligned with a DFT bin." else "⚠ Input frequency lies between bins; leakage is expected.")
@@ -98,7 +98,7 @@ private fun SpectrumPlot(
         val left = 72f
         val right = size.width - 18f
         val top = 24f
-        val bottom = size.height - 46f
+        val bottom = size.height - 52f
         val maxValue = (values.maxOrNull() ?: 1.0).coerceAtLeast(1e-9).toFloat()
         val width = right - left
         val height = bottom - top
