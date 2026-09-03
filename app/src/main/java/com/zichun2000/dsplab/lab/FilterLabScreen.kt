@@ -1,5 +1,6 @@
 package com.zichun2000.dsplab.lab
 
+import android.graphics.Paint
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -23,6 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.unit.dp
 import kotlin.math.PI
 import kotlin.math.cos
@@ -52,11 +54,11 @@ fun FilterLabScreen() {
         }}
         ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("2 · Impulse response", style = MaterialTheme.typography.titleMedium)
-            SignalPlot(taps, Modifier.fillMaxWidth().height(200.dp))
+            SignalPlot(taps, Modifier.fillMaxWidth().height(220.dp))
         }}
         ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text("3 · Frequency response", style = MaterialTheme.typography.titleMedium)
-            FrequencyResponsePlot(taps, Modifier.fillMaxWidth().height(210.dp))
+            FrequencyResponsePlot(taps, Modifier.fillMaxWidth().height(240.dp))
             Text("DC gain: ${"%.3f".format(dcGain)}")
             Text("Magnitude near cutoff: ${"%.3f".format(cutoffMagnitude)}")
             Text("Magnitude at cutoff + 0.20Fs: ${"%.3f".format(stopMagnitude)}")
@@ -95,17 +97,49 @@ private fun responseMagnitude(taps: List<Double>, normalizedFrequency: Double): 
 private fun FrequencyResponsePlot(taps: List<Double>, modifier: Modifier) {
     Canvas(modifier.padding(vertical = 8.dp)) {
         if (taps.isEmpty()) return@Canvas
-        val left = 30f; val right = size.width - 15f; val top = 15f; val bottom = size.height - 20f
+
+        val left = 72f
+        val right = size.width - 18f
+        val top = 24f
+        val bottom = size.height - 46f
         val width = right - left
-        val samples = 80
+        val height = bottom - top
+        val samples = 100
         val values = (0 until samples).map { i -> responseMagnitude(taps, 0.5 * i / (samples - 1)) }
         val maxValue = (values.maxOrNull() ?: 1.0).coerceAtLeast(1e-9)
+
+        val textPaint = Paint().apply {
+            color = android.graphics.Color.BLACK
+            textSize = 24f
+            isAntiAlias = true
+        }
+        val smallTextPaint = Paint(textPaint).apply { textSize = 20f }
+
         drawLine(Color.Black, Offset(left, bottom), Offset(right, bottom), strokeWidth = 2f)
+        drawLine(Color.Black, Offset(left, top), Offset(left, bottom), strokeWidth = 2f)
+
+        listOf(0.0, 0.25, 0.50).forEachIndexed { index, value ->
+            val x = left + width * index / 2f
+            drawLine(Color.Black, Offset(x, bottom - 5f), Offset(x, bottom + 5f), strokeWidth = 1.5f)
+            drawContext.canvas.nativeCanvas.drawText("%.2f".format(value), x - 18f, bottom + 25f, smallTextPaint)
+        }
+        listOf(maxValue, maxValue / 2.0, 0.0).forEach { value ->
+            val y = bottom - (value / maxValue).toFloat() * height
+            drawLine(Color.Black, Offset(left - 5f, y), Offset(left + 5f, y), strokeWidth = 1.5f)
+            drawContext.canvas.nativeCanvas.drawText("%.2f".format(value), 6f, y + 7f, smallTextPaint)
+        }
+
+        drawContext.canvas.nativeCanvas.drawText("f / Fs", right - 60f, size.height - 4f, textPaint)
+        drawContext.canvas.nativeCanvas.save()
+        drawContext.canvas.nativeCanvas.rotate(-90f, 18f, (top + bottom) / 2f)
+        drawContext.canvas.nativeCanvas.drawText("|H(f)|", 18f, (top + bottom) / 2f, textPaint)
+        drawContext.canvas.nativeCanvas.restore()
+
         for (i in 0 until samples - 1) {
             val x1 = left + width * i / (samples - 1)
             val x2 = left + width * (i + 1) / (samples - 1)
-            val y1 = bottom - (values[i] / maxValue).toFloat() * (bottom - top)
-            val y2 = bottom - (values[i + 1] / maxValue).toFloat() * (bottom - top)
+            val y1 = bottom - (values[i] / maxValue).toFloat() * height
+            val y2 = bottom - (values[i + 1] / maxValue).toFloat() * height
             drawLine(Color.Black, Offset(x1, y1), Offset(x2, y2), strokeWidth = 2f)
         }
     }
