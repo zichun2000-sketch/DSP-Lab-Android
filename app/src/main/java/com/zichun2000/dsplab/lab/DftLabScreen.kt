@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import com.zichun2000.dsplab.dsp.dft
 import com.zichun2000.dsplab.dsp.sineSamples
 import kotlin.math.abs
+import kotlin.math.max
 
 @Composable
 fun DftLabScreen() {
@@ -55,7 +56,7 @@ fun DftLabScreen() {
         }}
         ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("2 · Time domain", style = MaterialTheme.typography.titleMedium)
-            SpectrumPlot(samples, -1, (n - 1).toDouble(), "Sample n", "Amplitude", Modifier.fillMaxWidth().height(170.dp))
+            SpectrumPlot(samples, -1, (n - 1).toDouble(), "Sample n", "Amplitude", Modifier.fillMaxWidth().height(220.dp))
         }}
         ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text("3 · Frequency domain", style = MaterialTheme.typography.titleMedium)
@@ -99,9 +100,18 @@ private fun SpectrumPlot(
         val right = size.width - 18f
         val top = 24f
         val bottom = size.height - 52f
-        val maxValue = (values.maxOrNull() ?: 1.0).coerceAtLeast(1e-9).toFloat()
         val width = right - left
         val height = bottom - top
+
+        val minRaw = values.minOrNull()?.toFloat() ?: 0f
+        val maxRaw = values.maxOrNull()?.toFloat() ?: 1f
+        val hasNegative = minRaw < -1e-6f
+        val maxAbs = max(abs(minRaw), abs(maxRaw)).coerceAtLeast(1e-6f)
+        val yMin = if (hasNegative) -maxAbs else 0f
+        val yMax = maxAbs
+        val yRange = (yMax - yMin).coerceAtLeast(1e-6f)
+        fun yOf(value: Float): Float = bottom - ((value - yMin) / yRange) * height
+        val zeroY = yOf(0f)
         val step = if (values.size <= 1) width else width / (values.size - 1)
 
         val textPaint = Paint().apply {
@@ -111,20 +121,30 @@ private fun SpectrumPlot(
         }
         val smallTextPaint = Paint(textPaint).apply { textSize = 20f }
 
-        drawLine(Color.Black, Offset(left, bottom), Offset(right, bottom), strokeWidth = 2f)
+        drawLine(Color.Black, Offset(left, zeroY), Offset(right, zeroY), strokeWidth = 2f)
         drawLine(Color.Black, Offset(left, top), Offset(left, bottom), strokeWidth = 2f)
 
         listOf(0.0, xMax / 2.0, xMax).forEachIndexed { index, value ->
             val x = left + width * index / 2f
-            drawLine(Color.Black, Offset(x, bottom - 5f), Offset(x, bottom + 5f), strokeWidth = 1.5f)
+            drawLine(Color.Black, Offset(x, zeroY - 5f), Offset(x, zeroY + 5f), strokeWidth = 1.5f)
             val label = if (xMax >= 100.0) "%.0f".format(value) else "%.1f".format(value)
             drawContext.canvas.nativeCanvas.drawText(label, x - 18f, bottom + 25f, smallTextPaint)
         }
-        listOf(maxValue, maxValue / 2f, 0f).forEach { value ->
-            val y = bottom - (value / maxValue) * height
-            drawLine(Color.Black, Offset(left - 5f, y), Offset(left + 5f, y), strokeWidth = 1.5f)
-            val label = if (maxValue >= 10f) "%.0f".format(value) else "%.2f".format(value)
-            drawContext.canvas.nativeCanvas.drawText(label, 6f, y + 7f, smallTextPaint)
+
+        if (hasNegative) {
+            listOf(yMax, 0f, yMin).forEach { value ->
+                val y = yOf(value)
+                drawLine(Color.Black, Offset(left - 5f, y), Offset(left + 5f, y), strokeWidth = 1.5f)
+                val label = "%.2f".format(value)
+                drawContext.canvas.nativeCanvas.drawText(label, 6f, y + 7f, smallTextPaint)
+            }
+        } else {
+            listOf(yMax, yMax / 2f, 0f).forEach { value ->
+                val y = yOf(value)
+                drawLine(Color.Black, Offset(left - 5f, y), Offset(left + 5f, y), strokeWidth = 1.5f)
+                val label = if (yMax >= 10f) "%.0f".format(value) else "%.2f".format(value)
+                drawContext.canvas.nativeCanvas.drawText(label, 6f, y + 7f, smallTextPaint)
+            }
         }
 
         drawContext.canvas.nativeCanvas.drawText(xLabel, right - 125f, size.height - 4f, textPaint)
@@ -135,8 +155,8 @@ private fun SpectrumPlot(
 
         values.forEachIndexed { index, value ->
             val x = if (values.size <= 1) left else left + step * index
-            val y = bottom - (value.toFloat() / maxValue) * height
-            drawLine(Color.Black, Offset(x, bottom), Offset(x, y), strokeWidth = if (index == selected) 5f else 2f)
+            val y = yOf(value.toFloat())
+            drawLine(Color.Black, Offset(x, zeroY), Offset(x, y), strokeWidth = if (index == selected) 5f else 2f)
             if (index == selected) drawCircle(Color.Black, 7f, Offset(x, y))
         }
     }
