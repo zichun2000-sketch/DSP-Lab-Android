@@ -47,7 +47,7 @@ fun FilterLabScreen() {
         ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("1 · Filter parameters", style = MaterialTheme.typography.titleMedium)
             Text("Normalized cutoff  ${"%.2f".format(cutoff)} × Fs"); Slider(cutoff, { cutoff = it }, valueRange = 0.05f..0.45f)
-            Text("Tap count  $n"); Slider(n.toFloat(), { n = listOf(11, 21, 41, 61).minBy { kotlin.math.abs(it - value.toInt()) } }, valueRange = 11f..61f, steps = 2)
+            Text("Tap count  $n"); Slider(value = n.toFloat(), onValueChange = { newValue -> n = listOf(11, 21, 41, 61).minBy { kotlin.math.abs(it - newValue) } }, valueRange = 11f..61f, steps = 2)
             Text("Task: compare a short and a long filter while keeping cutoff fixed.")
         }}
         ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
