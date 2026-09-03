@@ -1,5 +1,6 @@
 package com.zichun2000.dsplab.lab
 
+import android.graphics.Paint
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.unit.dp
 import com.zichun2000.dsplab.dsp.sampleSineSignal
 import com.zichun2000.dsplab.dsp.satisfiesNyquist
@@ -85,18 +87,52 @@ fun SamplingLabScreen() {
 private fun SamplingPlot(values: List<Double>, signalFrequencyHz: Double, samplingFrequencyHz: Double, modifier: Modifier) {
     Canvas(modifier.padding(vertical = 8.dp)) {
         if (values.isEmpty()) return@Canvas
-        val left = 42f; val right = size.width - 16f; val top = 18f; val bottom = size.height - 22f
-        val centerY = (top + bottom) / 2f; val scaleY = (bottom - top) / 2.5f; val width = right - left
+        val left = 62f
+        val right = size.width - 18f
+        val top = 24f
+        val bottom = size.height - 42f
+        val centerY = (top + bottom) / 2f
+        val scaleY = (bottom - top) / 2.5f
+        val width = right - left
+
+        val textPaint = Paint().apply {
+            color = android.graphics.Color.BLACK
+            textSize = 24f
+            isAntiAlias = true
+        }
+        val smallTextPaint = Paint(textPaint).apply { textSize = 20f }
+
         drawLine(Color.Black, Offset(left, centerY), Offset(right, centerY), strokeWidth = 2f)
+        drawLine(Color.Black, Offset(left, top), Offset(left, bottom), strokeWidth = 2f)
+
+        val xTicks = listOf(0, values.lastIndex / 2, values.lastIndex).distinct()
+        xTicks.forEach { index ->
+            val x = if (values.size == 1) left else left + width * index / values.lastIndex
+            drawLine(Color.Black, Offset(x, centerY - 5f), Offset(x, centerY + 5f), strokeWidth = 1.5f)
+            drawContext.canvas.nativeCanvas.drawText(index.toString(), x - 8f, bottom + 24f, smallTextPaint)
+        }
+        listOf(1f, 0f, -1f).forEach { value ->
+            val y = centerY - value * scaleY
+            drawLine(Color.Black, Offset(left - 5f, y), Offset(left + 5f, y), strokeWidth = 1.5f)
+            drawContext.canvas.nativeCanvas.drawText(if (value == 0f) "0" else "%.1f".format(value), 10f, y + 7f, smallTextPaint)
+        }
+
+        drawContext.canvas.nativeCanvas.drawText("Sample n", right - 74f, bottom + 34f, textPaint)
+        drawContext.canvas.nativeCanvas.save()
+        drawContext.canvas.nativeCanvas.rotate(-90f, 18f, centerY)
+        drawContext.canvas.nativeCanvas.drawText("Amplitude", 18f, centerY, textPaint)
+        drawContext.canvas.nativeCanvas.restore()
+
         val path = Path()
         values.forEachIndexed { i, value ->
-            val x = if (values.size == 1) left else left + width * i / (values.size - 1)
+            val x = if (values.size == 1) left else left + width * i / values.lastIndex
             val y = centerY - value.toFloat() * scaleY
             if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
             drawLine(Color.Black, Offset(x, centerY), Offset(x, y), strokeWidth = 2f)
             drawCircle(Color.Black, 5f, Offset(x, y))
         }
         drawPath(path, Color.Black, style = Stroke(width = 2f))
+
         val alias = resultAliasFrequency(signalFrequencyHz, samplingFrequencyHz)
         val cycles = max(0.5, alias / samplingFrequencyHz * values.size)
         val reference = Path()
