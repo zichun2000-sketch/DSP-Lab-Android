@@ -29,6 +29,17 @@ class ExperimentRecordStore(context: Context) {
         }
     }
 
+    fun markLabCompleted(labId: String): Boolean {
+        val key = "lab_completed_${labId.trim().uppercase()}"
+        val committed = prefs.edit().putBoolean(key, true).commit()
+        return committed && prefs.getBoolean(key, false)
+    }
+
+    fun isLabCompleted(labId: String): Boolean {
+        val key = "lab_completed_${labId.trim().uppercase()}"
+        return prefs.getBoolean(key, false)
+    }
+
     /**
      * Save an assessment independently from the activity-record JSON.
      * The assessment result is committed first and verified immediately.
@@ -49,13 +60,11 @@ class ExperimentRecordStore(context: Context) {
 
         if (!committed) return false
 
-        // Verify the actual persisted values before reporting success.
         val verified = prefs.contains(scoreKey) &&
             prefs.getInt(scoreKey, Int.MIN_VALUE) == score &&
             prefs.getInt(maxKey, Int.MIN_VALUE) == maxScore
 
         if (verified) {
-            // Do not let an unrelated/corrupt event log prevent assessment storage.
             save(ExperimentRecord(safeType, emptyMap(), "score=$score/$maxScore", now))
         }
         return verified
