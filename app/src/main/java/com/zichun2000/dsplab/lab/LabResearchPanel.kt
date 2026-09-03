@@ -26,6 +26,7 @@ fun LabResearchPanel(
     val store = remember(context) { ExperimentRecordStore(context) }
     var response by remember { mutableStateOf("") }
     var submitted by remember { mutableStateOf(false) }
+    var saveFailed by remember { mutableStateOf(false) }
 
     Column(
         Modifier.fillMaxWidth().padding(top = 4.dp),
@@ -42,11 +43,20 @@ fun LabResearchPanel(
         )
         Button(
             onClick = {
-                store.save(ExperimentRecord(labId, parameters, response.trim().ifEmpty { "No reflection provided" }))
-                submitted = true
+                val recordSaved = store.save(
+                    ExperimentRecord(
+                        labId,
+                        parameters,
+                        response.trim().ifEmpty { "No reflection provided" }
+                    )
+                )
+                val completionSaved = recordSaved && store.markLabCompleted(labId)
+                submitted = completionSaved
+                saveFailed = !completionSaved
             },
             modifier = Modifier.fillMaxWidth()
         ) { Text(if (submitted) "Experiment submitted ✓" else "Submit Experiment") }
-        if (submitted) Text("Saved locally for the teaching-research record.")
+        if (submitted) Text("Saved locally and marked complete for the teaching-research record.")
+        if (saveFailed) Text("Unable to save this experiment. Please tap Submit Experiment again.")
     }
 }
