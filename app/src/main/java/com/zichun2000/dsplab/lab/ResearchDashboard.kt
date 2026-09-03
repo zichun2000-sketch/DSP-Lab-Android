@@ -38,7 +38,10 @@ fun ResearchDashboard() {
         "LAB04_DFT",
         "LAB05_FIR"
     )
-    val labCount = labIds.count { id -> records.any { it.labId == id } }
+    val completedLabs = labIds.associateWith { id ->
+        store.isLabCompleted(id) || records.any { it.labId == id }
+    }
+    val labCount = completedLabs.values.count { it }
 
     Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("Research", style = MaterialTheme.typography.headlineSmall)
@@ -58,6 +61,9 @@ fun ResearchDashboard() {
         Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
             Text("Activity", style = MaterialTheme.typography.titleMedium)
             Text("Labs completed: $labCount / 5")
+            labIds.forEachIndexed { index, id ->
+                Text("Lab ${index + 1}: ${if (completedLabs[id] == true) "✓" else "—"}")
+            }
             Text("Recorded events: ${records.size}")
             Text("Pre-test record: ${if (preRecord != null || pre != null) "✓" else "—"}    Post-test record: ${if (postRecord != null || post != null) "✓" else "—"}")
             Text("Data remain on this device in the prototype.")
