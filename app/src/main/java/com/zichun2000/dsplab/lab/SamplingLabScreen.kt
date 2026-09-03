@@ -38,9 +38,11 @@ fun SamplingLabScreen() {
     var sampleCount by rememberSaveable { mutableIntStateOf(32) }
     val result = sampleSineSignal(frequencyHz = signalFrequency.toDouble(), samplingFrequencyHz = samplingFrequency.toDouble(), sampleCount = sampleCount)
     val nyquistOk = satisfiesNyquist(signalFrequency.toDouble(), samplingFrequency.toDouble())
+    val ratio = samplingFrequency / (2f * signalFrequency)
+    val marginHz = samplingFrequency / 2f - signalFrequency
     Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Sampling & Aliasing", style = MaterialTheme.typography.headlineSmall)
-        Text("Adjust the signal and sampling rates, then connect the waveform to the Nyquist criterion.", style = MaterialTheme.typography.bodyMedium)
+        Text("Verify the sampling theorem experimentally by changing only Fs, then compare safe sampling, the Nyquist boundary, and aliasing.", style = MaterialTheme.typography.bodyMedium)
         ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("1 · Parameters", style = MaterialTheme.typography.titleMedium)
             Text("Signal frequency  ${signalFrequency.toInt()} Hz")
@@ -55,15 +57,26 @@ fun SamplingLabScreen() {
             SamplingPlot(result.values, signalFrequency.toDouble(), samplingFrequency.toDouble(), Modifier.fillMaxWidth().height(220.dp))
         }}
         ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("3 · Result", style = MaterialTheme.typography.titleMedium)
-            Text(if (nyquistOk) "✓ Nyquist condition satisfied: Fs ≥ 2f" else "⚠ Aliasing occurs: Fs < 2f", style = MaterialTheme.typography.titleSmall)
+            Text("3 · Experimental diagnosis", style = MaterialTheme.typography.titleMedium)
+            Text(if (nyquistOk) "✓ No theoretical aliasing: Fs / (2f) = ${"%.2f".format(ratio)}" else "⚠ Aliasing expected: Fs / (2f) = ${"%.2f".format(ratio)}", style = MaterialTheme.typography.titleSmall)
             Text("Nyquist frequency: ${"%.0f".format(samplingFrequency / 2f)} Hz")
+            Text("Distance from signal to Nyquist frequency: ${"%.0f".format(marginHz)} Hz")
             Text("Observed alias frequency: ${"%.0f".format(result.aliasedFrequencyHz)} Hz")
+        }}
+        ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("4 · Investigation task", style = MaterialTheme.typography.titleMedium)
+            Text("For a 3 kHz signal, compare three cases: Fs = 8 kHz (safe), Fs = 6 kHz (boundary), and Fs = 4 kHz (aliasing).")
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Button(onClick = { signalFrequency = 3000f; samplingFrequency = 8000f }) { Text("Safe") }
+                Button(onClick = { signalFrequency = 3000f; samplingFrequency = 6000f }) { Text("Boundary") }
+                Button(onClick = { signalFrequency = 3000f; samplingFrequency = 4000f }) { Text("Aliasing") }
+            }
+            Text("Question: what changes in the sampled waveform and observed frequency as Fs crosses 2f?", style = MaterialTheme.typography.bodyMedium)
             Button(onClick = { signalFrequency = 3000f; samplingFrequency = 8000f; sampleCount = 32 }) { Text("Reset experiment") }
         }}
         ElevatedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("4 · Reflection", style = MaterialTheme.typography.titleMedium)
-            LabResearchPanel("LAB02_SAMPLING", "What happens to the observed frequency when Fs becomes lower than twice the signal frequency?", mapOf("signalFrequencyHz" to signalFrequency.toInt().toString(), "samplingFrequencyHz" to samplingFrequency.toInt().toString()))
+            Text("5 · Reflection", style = MaterialTheme.typography.titleMedium)
+            LabResearchPanel("LAB02_SAMPLING", "Use the Safe, Boundary, and Aliasing cases to explain the Nyquist criterion. Why can two different analog frequencies produce the same sampled sequence?", mapOf("signalFrequencyHz" to signalFrequency.toInt().toString(), "samplingFrequencyHz" to samplingFrequency.toInt().toString(), "nyquistRatio" to "%.2f".format(ratio), "aliasFrequencyHz" to "%.0f".format(result.aliasedFrequencyHz)))
         }}
     }
 }
