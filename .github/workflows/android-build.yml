@@ -1,5 +1,6 @@
 name: Android Build
 
+# Re-run CI for the current Lab 4 plotting fix.
 on:
   push:
     branches: [ main ]
